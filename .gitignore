@@ -1,6 +1,8 @@
 /target
 /classes
 /checkouts
+/resources/public/js/dev
+/config.edn
 profiles.clj
 pom.xml
 pom.xml.asc

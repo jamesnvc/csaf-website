@@ -6,8 +6,17 @@
   :dependencies [[org.clojure/clojure "1.11.1"]
                  [org.clojure/clojurescript "1.11.60"]
 
-                 [io.bloomventures/commons "0.14.3"]
-                 [io.bloomventures/omni "0.34.0"]
+                 [org.slf4j/slf4j-api "1.7.36"]
+                 [org.clojure/data.xml "0.2.0-alpha6"]
+                 [com.fasterxml.jackson.core/jackson-core "2.11.0"]
+                 [com.fasterxml.jackson.core/jackson-databind "2.11.0"]
+                 [riddley "0.1.15"]
+                 [org.apache.httpcomponents/httpcore "4.4.13"]
+                 [io.bloomventures/omni "0.34.0"
+                  :exclusions [riddley]]
+                 [io.bloomventures/commons "0.14.3"
+                  :exclusions [riddley reagent org.clojure/data.xml
+                               ]]
 
                  [com.github.seancorfield/next.jdbc "1.3.847"]
                  [hikari-cp "2.13.0"]
