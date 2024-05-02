@@ -11,16 +11,28 @@
 
    (garden.stylesheet/at-keyframes
      "changeGalleryImage"
-     [[" 0%" {:background-image "url(\"/images/gallery/image_0.jpg\")"}]
-      ["10%" {:background-image "url(\"/images/gallery/image_1.jpg\")"}]
-      ["20%" {:background-image "url(\"/images/gallery/image_2.jpg\")"}]
-      ["30%" {:background-image "url(\"/images/gallery/image_3.jpg\")"}]
-      ["40%" {:background-image "url(\"/images/gallery/image_4.jpg\")"}]
-      ["50%" {:background-image "url(\"/images/gallery/image_5.jpg\")"}]
-      ["60%" {:background-image "url(\"/images/gallery/image_6.jpg\")"}]
-      ["70%" {:background-image "url(\"/images/gallery/image_7.jpg\")"}]
-      ["80%" {:background-image "url(\"/images/gallery/image_8.jpg\")"}]
-      ["90%" {:background-image "url(\"/images/gallery/image_9.jpg\")"}]])
+     (let [imgs (for [i (range 9)] (str "image_" i ".jpg"))
+           step-per-image (float (/ 100 (count imgs)))]
+       (into []
+             (comp (map-indexed vector)
+                   (mapcat (fn [[idx img]]
+                             [[(str (* step-per-image idx) "%")
+                               {:background-image
+                                (str "url(\"/images/gallery/" img "\")")
+                                :opacity 0}]
+                              [(str (* step-per-image (+ idx 0.2)) "%")
+                               {:background-image
+                                (str "url(\"/images/gallery/" img "\")")
+                                :opacity 1}]
+                              [(str (* step-per-image (+ idx 0.7)) "%")
+                               {:background-image
+                                (str "url(\"/images/gallery/" img "\")")
+                                :opacity 1}]
+                              [(str (* step-per-image (+ idx 0.9)) "%")
+                               {:background-image
+                                (str "url(\"/images/gallery/" img "\")")
+                                :opacity 0}]])))
+             imgs)))
 
    [:body
     {:background-image "url(/images/celtic_knot_bg.jpg)"}]
