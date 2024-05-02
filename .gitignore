@@ -2,6 +2,7 @@
 /classes
 /checkouts
 /resources/public/js/dev
+/resources/public/js/app.js
 /config.edn
 profiles.clj
 pom.xml
