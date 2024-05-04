@@ -1,0 +1,150 @@
+#+title: Porting data from dump
+
+* Users
+
+Old schema:
+
+#+begin_src sql
+-- ----------------------------
+-- Table structure for membership
+-- ----------------------------
+CREATE TABLE `membership` (
+  `memberID` int(11) NOT NULL AUTO_INCREMENT,
+  `nameLast` varchar(100) DEFAULT NULL,
+  `nameFirst` varchar(100) DEFAULT NULL,
+  `address1` varchar(200) DEFAULT NULL,
+  `address2` varchar(200) DEFAULT NULL,
+  `city` varchar(200) DEFAULT NULL,
+  `province` varchar(20) DEFAULT NULL,
+  `country` varchar(100) DEFAULT 'Canada',
+  `postalCode` varchar(20) DEFAULT NULL,
+  `telephone` varchar(20) DEFAULT NULL,
+  `cell` varchar(20) DEFAULT NULL,
+  `email` varchar(200) DEFAULT NULL,
+  `status` varchar(20) NOT NULL DEFAULT 'New',
+  `master_age` varchar(10) DEFAULT 'no',
+  `master_firstDate` varchar(20) DEFAULT NULL,
+  `dateAdded` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `siteCode` varchar(20) DEFAULT 'Member',
+  `login` varchar(200) DEFAULT NULL,
+  `password` varchar(30) DEFAULT NULL,
+  `class` varchar(20) DEFAULT NULL COMMENT 'blank,open,masters,amateurs,womens',
+  `region` varchar(50) DEFAULT NULL,
+  `height` varchar(50) DEFAULT NULL,
+  `weight` varchar(50) DEFAULT NULL,
+  `birthDate` varchar(20) DEFAULT NULL,
+  `tartan` varchar(100) DEFAULT NULL,
+  `biography` longtext,
+  `imageFile` varchar(200) DEFAULT NULL,
+  `gamesList` varchar(100) DEFAULT NULL,
+  `username` varchar(30) DEFAULT NULL,
+  `banned_startDate` varchar(20) DEFAULT NULL,
+  `banned_endDate` varchar(20) DEFAULT NULL,
+  PRIMARY KEY (`memberID`),
+  KEY `firstName` (`nameFirst`),
+  KEY `lastName` (`nameLast`)
+) ENGINE=MyISAM AUTO_INCREMENT=1613 DEFAULT CHARSET=latin1 ROW_FORMAT=DYNAMIC;
+#+end_src
+
+#+begin_src sql :engine mysql :dbhost localhost :dbport 3306 :dbuser root :dbpassword foobar :database csaf_dump
+describe membership;
+#+end_src
+
+#+RESULTS:
+| Field            | Type         | Null | Key | Default           | Extra             |
+|------------------+--------------+------+-----+-------------------+-------------------|
+| memberID         | int          | NO   | PRI | NULL              | auto_increment    |
+| nameLast         | varchar(100) | YES  | MUL | NULL              |                   |
+| nameFirst        | varchar(100) | YES  | MUL | NULL              |                   |
+| address1         | varchar(200) | YES  |     | NULL              |                   |
+| address2         | varchar(200) | YES  |     | NULL              |                   |
+| city             | varchar(200) | YES  |     | NULL              |                   |
+| province         | varchar(20)  | YES  |     | NULL              |                   |
+| country          | varchar(100) | YES  |     | Canada            |                   |
+| postalCode       | varchar(20)  | YES  |     | NULL              |                   |
+| telephone        | varchar(20)  | YES  |     | NULL              |                   |
+| cell             | varchar(20)  | YES  |     | NULL              |                   |
+| email            | varchar(200) | YES  |     | NULL              |                   |
+| status           | varchar(20)  | NO   |     | New               |                   |
+| master_age       | varchar(10)  | YES  |     | no                |                   |
+| master_firstDate | varchar(20)  | YES  |     | NULL              |                   |
+| dateAdded        | timestamp    | NO   |     | CURRENT_TIMESTAMP | DEFAULT_GENERATED |
+| siteCode         | varchar(20)  | YES  |     | Member            |                   |
+| login            | varchar(200) | YES  |     | NULL              |                   |
+| password         | varchar(30)  | YES  |     | NULL              |                   |
+| class            | varchar(20)  | YES  |     | NULL              |                   |
+| region           | varchar(50)  | YES  |     | NULL              |                   |
+| height           | varchar(50)  | YES  |     | NULL              |                   |
+| weight           | varchar(50)  | YES  |     | NULL              |                   |
+| birthDate        | varchar(20)  | YES  |     | NULL              |                   |
+| tartan           | varchar(100) | YES  |     | NULL              |                   |
+| biography        | longtext     | YES  |     | NULL              |                   |
+| imageFile        | varchar(200) | YES  |     | NULL              |                   |
+| gamesList        | varchar(100) | YES  |     | NULL              |                   |
+| username         | varchar(30)  | YES  |     | NULL              |                   |
+| banned_startDate | varchar(20)  | YES  |     | NULL              |                   |
+| banned_endDate   | varchar(20)  | YES  |     | NULL              |                   |
+
+#+begin_src sql :engine mysql :dbhost localhost :dbport 3306 :dbuser root :dbpassword foobar :database csaf_dump
+select
+   memberID         ,
+   nameLast         ,
+   nameFirst        ,
+   if(address1         = '', NULL, address1         ),
+   if(address2         = '', NULL, address2         ),
+   if(city             = '', NULL, city             ),
+   if(province         = '', NULL, province         ),
+   if(country          = '', NULL, country          ),
+   if(postalCode       = '', NULL, postalCode       ),
+   if(telephone        = '', NULL, telephone        ),
+   if(cell             = '', NULL, cell             ),
+   if(email            = '', NULL, email            ),
+   if(status           = '', NULL, status           ),
+   if(master_age       = '', NULL, master_age       ),
+   if(master_firstDate = '', NULL, master_firstDate ),
+   dateAdded,
+   case siteCode when '' then null
+    when 'Member' then 'member' else siteCode end,
+   if(login            = '', NULL, login            ),
+   if(password         = '', NULL, password         ),
+   case class when '' then 'unknown' when 'amateur' then 'amateurs'
+       when 'Amateurs' then 'amateurs' when 'women' then 'womens'
+       when 'Masters' then 'masters' when 'n/a' then 'N/A'
+       when 'Womens' then 'womens' when 'Open' then 'open'
+       when 'Lightweight' then 'lightweight'
+       when 'Womensmaster' then 'womensmaster'
+       when 'Masters50+' then 'masters'
+       when 'Masters60+' then 'masters'
+       when 'Womensmaster50+' then 'womensmaster'
+       when 'Womensmaster60+' then 'womensmaster'
+       when 'Juniors' then 'juniors' else coalesce(class, 'unknown') end,
+   if(region           = '', NULL, region           ),
+   if(height           = '', NULL, height           ),
+   if(weight           = '', NULL, weight           ),
+   if(birthDate = '', NULL, birthDate),
+   if(tartan          = '', NULL, tartan           ),
+   if(biography       = '', NULL, biography        ),
+   if(imageFile       = '', NULL, imageFile        ),
+   if(gamesList       = '', NULL, gamesList        ),
+   if(username        = '', NULL, username         ),
+   if(banned_startDate= '', NULL, banned_startDate ),
+   if(banned_endDate  = '', NULL, banned_endDate   )
+from membership
+into outfile '/Users/james/src/csaf/csaf/mysql_dump.csv'
+ fields terminated by ',' optionally enclosed by '"'
+ lines terminated by '\n'
+#+end_src
+
+#+RESULTS:
+|---|
+
+Importing
+
+#+begin_src sql :engine postgresql :dbhost localhost :dbport 5432 :dbuser tester :dbpassword test :database csaf_dev
+\copy members from '/Users/james/src/csaf/csaf/mysql_dump.csv' with (format csv, NULL '\N', quote '"', escape '\');
+#+end_src
+
+#+RESULTS:
+| SET       |
+|-----------|
+| COPY 1346 |
