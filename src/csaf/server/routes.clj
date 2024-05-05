@@ -58,6 +58,12 @@
         [:body [:div#app (reagent->hiccup content)]]]
        (hiccup/html (hiccup-page/doctype :html5))))
 
+(defn ->int [s]
+  (try
+    (Long. s)
+    (catch java.lang.NumberFormatException _
+      nil)))
+
 (def routes
   [
    [[:get "/athletes"]
@@ -68,5 +74,17 @@
                   athletes/all-athletes-view
                   layout/layout
                   page)})
+    []]
+
+   [[:get "/athletes/:id"]
+    (fn [req]
+      (if-let [athlete-id (->int (get-in req [:params :id]))]
+        {:status 200
+         :headers {"Content-Type" "text/html; charset=utf-8"}
+         :body (->> (db/member athlete-id)
+                    athletes/athlete-view
+                    layout/layout
+                    page)}
+        {:status 404}))
     []]
    ])

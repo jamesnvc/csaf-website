@@ -2,6 +2,8 @@
   (:require
    [garden.stylesheet]))
 
+(def a-tw "text-red-800 hover:text-red-300 no-underline")
+
 (defn styles []
   [
    ["@font-face"

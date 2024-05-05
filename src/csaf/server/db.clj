@@ -31,7 +31,15 @@
       order by last_name asc, first_name asc"]
     jdbc/snake-kebab-opts))
 
+(defn member
+  [id]
+  (jdbc/execute-one!
+    @datasource
+    ["select * from members where id = ?" id]
+    jdbc/snake-kebab-opts))
+
 (comment
+  (member 958)
   (jdbc/execute!
     @datasource
     ["select * from members where first_name = 'Cash'"]
