@@ -13,7 +13,7 @@
    :omni/css {:styles "csaf.client.styles/styles"
               :tailwind? true
               :tailwind-opts {:garden-fn 'girouette.tw.default-api/tw-v3-class-name->garden
-                              :base-css-rules []
+                              :base-css-rules ['girouette.tw.preflight/preflight-v3_0_24]
                               :retrieval-method :comprehensive}}
    :omni/cljs {:main "csaf.client.core"}
    :omni/api-routes #'routes
