@@ -49,7 +49,7 @@ create table if not exists members (
   "city" text,
   "province" text,
   "country" text default 'Canada',
-  "postalCode" text,
+  "postal_code" text,
   "telephone" text,
   "cell" text,
   "email" text,
