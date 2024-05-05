@@ -19,3 +19,21 @@
   (jdbc/execute!
     @datasource
     [(slurp (io/resource "sql/create_tables.sql"))]))
+
+;; [TODO] update the unhashed passwords in the database
+
+(defn all-members
+  []
+  (jdbc/execute!
+    @datasource
+    ["select id, first_name, last_name from members
+      where status = 'active' and site_code = 'member'
+      order by last_name asc, first_name asc"]
+    jdbc/snake-kebab-opts))
+
+(comment
+  (jdbc/execute!
+    @datasource
+    ["select * from members where first_name = 'Cash'"]
+    )
+  )

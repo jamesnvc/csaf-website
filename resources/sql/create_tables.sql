@@ -42,8 +42,8 @@ end$$;
 create table if not exists members (
   "id" serial primary key,
   -- maybe not really robust, but matching the existing data
-  "nameFirst" text not null,
-  "nameLast" text not null,
+  "first_name" text not null,
+  "last_name" text not null,
   "address1" text,
   "address2" text,
   "city" text,
@@ -55,23 +55,23 @@ create table if not exists members (
   "email" text,
   "status" membership_status not null default 'new',
   "master_age" boolean not null default false,
-  "master_firstDate" date,
-  "dateAdded" timestamp with time zone not null default now(),
-  "siteCode" membership_site_code not null default 'member',
+  "master_first_date" date,
+  "date_added" timestamp with time zone not null default now(),
+  "site_code" membership_site_code not null default 'member',
   "login" text not null,
   "password_hash" text not null, -- TODO: hash
   "class" membership_class_code not null, -- I guess? replace NULL with 'unknown'?
   "region" text,
   "height" text,
   "weight" text,
-  "birthDate" date,
+  "birth_date" date,
   "tartan" text,
   "biography" text,
-  "imageFile" text,
-  "gamesList" text,
+  "image_file" text,
+  "games_list" text,
   "username" text,
-  "banned_startDate" date,
-  "banned_endDate" date
+  "banned_start_date" date,
+  "banned_end_date" date
 );
 
 COMMIT;
