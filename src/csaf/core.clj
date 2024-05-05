@@ -4,6 +4,7 @@
    [bloom.omni.core :as omni]
    [taoensso.timbre :as timbre]
    [csaf.config :as conf]
+   [csaf.server.db :as db]
    [csaf.server.routes :refer [routes]]))
 
 (def config
@@ -22,6 +23,7 @@
 (defn start!
   []
   (timbre/info "Starting")
+  (db/init-db!)
   (omni/start! omni/system config))
 
 (defn stop!
