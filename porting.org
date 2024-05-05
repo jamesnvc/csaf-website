@@ -88,8 +88,8 @@ describe membership;
 #+begin_src sql :engine mysql :dbhost localhost :dbport 3306 :dbuser root :dbpassword foobar :database csaf_dump
 select
    memberID         ,
-   nameLast         ,
    nameFirst        ,
+   nameLast         ,
    if(address1         = '', NULL, address1         ),
    if(address2         = '', NULL, address2         ),
    if(city             = '', NULL, city             ),
