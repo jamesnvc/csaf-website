@@ -24,7 +24,7 @@ end$$;
 
 do $$
   begin
-    if not exists (select 1 from pg_type where typname = 'membership_class') then
+    if not exists (select 1 from pg_type where typname = 'membership_class_code') then
       create type membership_class_code as enum (
         'N/A', -- what's the difference between class = '' and class = N/A and class = NULL?
         'unknown', -- use unknown for null & empty string?
