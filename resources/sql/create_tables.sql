@@ -74,4 +74,66 @@ create table if not exists members (
   "banned_end_date" date
 );
 
+do $$
+  begin
+    if not exists (select 1 from pg_type where typname = 'game_status') then
+      create type game_status as enum (
+         'active', 'inactive'
+      );
+    end if;
+end$$;
+
+create table if not exists games (
+   "id" serial primary key,
+   "name" text not null,
+   "website" text,
+   "status" game_status default 'active',
+   "contact_name" text,
+   "contact_email" text,
+   "contact_phone" text,
+   "city" text,
+   "province" text,
+   "region" text
+);
+
+create table if not exists game_instances (
+   "id" serial primary key,
+   "game_id" integer not null references games(id),
+   "date" date not null,
+   "events_list" text
+);
+
+do $$
+  begin
+    if not exists (select 1 from pg_type where typname = 'game_event_type') then
+      create type game_event_type as enum (
+         'braemar',
+         'open',
+         'sheaf',
+         'caber',
+         'lwfd',
+         'hwfd',
+         'lhmr',
+         'hhmr',
+         'wob'
+      );
+    end if;
+end$$;
+
+create table if not exists game_member_results (
+   id serial primary key,
+   member_id integer not null references members(id),
+   game_instance integer references game_instances(id),
+   event game_event_type not null,
+   distance_inches numeric(8,1),
+   clock_sixteenths integer,
+   weight numeric(8,2),
+   score numeric(11,4),
+
+   constraint caber_has_clock check ((distance_inches is not null and event <> 'caber'::game_event_type) or  (clock_sixteenths is not null and event = 'caber'::game_event_type) )
+);
+
+create index if not exists game_member_results_member_idx on game_member_results(member_id, game_instance);
+create index if not exists game_member_results_game_idx on game_member_results(game_instance, member_id);
+
 COMMIT;

@@ -12,7 +12,7 @@
            {:jdbc-url
             (str "jdbc:"
                  (config/conf :csaf/database-url))
-            :re-write-batched-inserts true})))
+            #_#_:re-write-batched-inserts true})))
 
 (defn init-db!
   []
@@ -44,4 +44,34 @@
     @datasource
     ["select * from members where first_name = 'Cash'"]
     )
+  )
+
+(defn member-game-results
+  [member-id]
+  (jdbc/execute!
+    @datasource
+    ["select * from game_member_results
+      where member_id = ? order by game_instance" member-id]))
+
+(defn member-pr-results
+  [member-id]
+  (jdbc/execute!
+    @datasource
+    ["select distinct on (event)
+             event,
+             last_value(game_instance) over wnd,
+             last_value(distance_inches) over wnd,
+             last_value(weight) over wnd
+      from game_member_results
+      where member_id = ?
+      window wnd as (
+        partition by event order by distance_inches
+        rows between unbounded preceding and unbounded following
+      )
+      "
+     member-id]))
+
+(comment
+  (member-game-results 958)
+  (member-pr-results 958)
   )

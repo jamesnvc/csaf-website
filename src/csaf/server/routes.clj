@@ -81,7 +81,9 @@
       (if-let [athlete-id (->int (get-in req [:params :id]))]
         {:status 200
          :headers {"Content-Type" "text/html; charset=utf-8"}
-         :body (->> (db/member athlete-id)
+         :body (->> (-> (db/member athlete-id)
+                        ;; TODO: use datafy/nav to do this?
+                        (assoc :member/game-results (db/member-game-results athlete-id)))
                     athletes/athlete-view
                     layout/layout
                     page)}

@@ -13,7 +13,7 @@
        last-name ", " first-name])]] )
 
 (defn athlete-view
-  [member]
+  [member results]
   [:div {:tw "flex flex-col gap-4"}
    [:h2 {:tw "text-xl"} (:members/first-name member) " " (:members/last-name member)]
    (when-let [email (:members/email member)]
@@ -48,6 +48,20 @@
 
    [:div.prs
     [:h3 {:tw "text-lg text-gray-500"} "PERSONAL BESTS"]
+    [:table
+     [:thead
+      [:tr
+       [:th "Date"]
+       [:th "Location"]
+       [:th "BRE"]
+       [:th "STON"]
+       [:th "SHF"]
+       [:th "CABR"]
+       [:th "LWFD"]
+       [:th "HWFD"]
+       [:th "LWFD"]
+       [:th "HHMR"]
+       [:th "WOB"]]]]
     [:code "TODO"]]
 
 
