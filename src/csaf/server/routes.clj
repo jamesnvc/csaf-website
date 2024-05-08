@@ -4,20 +4,16 @@
    [clojure.java.io :as io]
    [clojure.string :as string]
    [bloom.omni.impl.crypto :as crypto]
-   [hiccup.core :as hiccup]
-   [hiccup.page :as hiccup-page]
+   [huff2.core :as huff]
    [csaf.client.athletes :as athletes]
    [csaf.client.layout :as layout]
    [csaf.server.db :as db]))
 
-(defn reagent->hiccup
+(defn tw->class
   [content]
   (->> content
        (x/transform
-         [(x/walker map?)
-          (x/pred (fn [m]
-                    (or (contains? m :tw)
-                        (contains? m :style))))]
+         [(x/walker map?) (x/pred (fn [m] (contains? m :tw)))]
          (fn [{tw :tw :as m}]
            (->> m
                 (x/transform
@@ -27,13 +23,7 @@
                          (cond
                            (string? tw) tw
                            (seq tw) (string/join " " (remove nil? tw))))))
-                (x/setval :tw x/NONE)
-                (x/transform
-                  [:style (x/pred map?)]
-                  (fn [style]
-                    (->> style
-                         (map (fn [[k v]] (str (name k) ": " v ";")))
-                      (string/join " ")))))))))
+                (x/setval :tw x/NONE))))))
 
 (defn page
   [content]
@@ -55,8 +45,8 @@
                                                (remove nil?)
                                                (map (fn [d] (str "sha256-" d)))
                                                (string/join " "))}]))))]
-        [:body [:div#app (reagent->hiccup content)]]]
-       (hiccup/html (hiccup-page/doctype :html5))))
+        [:body [:div#app (tw->class content)]]]
+       (huff/page {:allow-raw true})))
 
 (defn ->int [s]
   (try

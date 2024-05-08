@@ -66,19 +66,19 @@
     (let [dt-tw "after:content-[\"::\"]"]
       [:dl {:tw "grid gap-1" :style {:grid-template-columns "max-content max-content"}}
        (when-let [height (:members/height member)]
-         (list [:dt {:tw dt-tw} "Height "]
-               [:dd height]))
+         [:<> [:dt {:tw dt-tw} "Height "]
+          [:dd height]])
 
        (when-let [weight (:members/weight member)]
-         (list [:dt {:tw dt-tw} "Weight "]
-               [:dd weight]))
+         [:<> [:dt {:tw dt-tw} "Weight "]
+          [:dd weight]])
 
        (when-let [tartan (:members/tartan member)]
-         (list [:dt {:tw dt-tw} "Tartan "]
-               [:dd tartan]))])]
+         [:<> [:dt {:tw dt-tw} "Tartan "]
+          [:dd tartan]])])]
 
    (when-let [bio (:members/biography member)]
-     [:div.bio [:p bio]])
+     [:div.bio [:hiccup/raw-html bio]])
 
    [:div.prs
     [:h3 {:tw "text-lg text-gray-500"} "PERSONAL BESTS"]
@@ -98,12 +98,11 @@
                   (some-> (:clock-minutes result) display-clock))
                 (display-distance (:distance-inches result))
                 (when (#{"braemar" "open" "sheaf" "caber"} event-name)
-                    (some-> (:weight result) (?> zero? (constantly nil))
-                        display-weight))]
+                  (some-> (:weight result) (?> zero? (constantly nil))
+                          display-weight))]
                (remove nil?)
                (string/join " "))]
-         [:td (:game-instances/date result)]])
-      ]]]
+         [:td (str (:game-instances/date result))]])]]]
 
 
    [:div.record
