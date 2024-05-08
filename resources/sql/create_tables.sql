@@ -125,12 +125,13 @@ create table if not exists game_member_results (
    member_id integer not null references members(id),
    game_instance integer references game_instances(id),
    event game_event_type not null,
-   distance_inches numeric(8,1),
-   clock_sixteenths integer,
+   distance_inches numeric(8,1) not null,
+   clock_minutes integer,
    weight numeric(8,2),
    score numeric(11,4),
+   class membership_class_code not null,
 
-   constraint caber_has_clock check ((distance_inches is not null and event <> 'caber'::game_event_type) or  (clock_sixteenths is not null and event = 'caber'::game_event_type) )
+   constraint caber_has_clock check ((event <> 'caber'::game_event_type and clock_minutes is null) or (event = 'caber'::game_event_type and clock_minutes is not null))
 );
 
 create index if not exists game_member_results_member_idx on game_member_results(member_id, game_instance);

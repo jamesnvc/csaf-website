@@ -83,7 +83,8 @@
          :headers {"Content-Type" "text/html; charset=utf-8"}
          :body (->> (-> (db/member athlete-id)
                         ;; TODO: use datafy/nav to do this?
-                        (assoc :member/game-results (db/member-game-results athlete-id)))
+                        (assoc :member/game-results (db/member-game-results athlete-id)
+                               :member/prs (db/member-pr-results athlete-id)))
                     athletes/athlete-view
                     layout/layout
                     page)}

@@ -303,6 +303,12 @@ CREATE TABLE `score_results` (
 ) ENGINE=MyISAM AUTO_INCREMENT=143736 DEFAULT CHARSET=latin1 ROW_FORMAT=DYNAMIC;
 #+end_src
 
+#+begin_src bash
+rm '/Users/james/src/csaf/csaf/mysql_results_dump.csv'
+#+end_src
+
+#+RESULTS:
+
 #+begin_src sql :engine mysql :dbhost localhost :dbport 3306 :dbuser root :dbpassword foobar :database csaf_dump
 select
    rno,
@@ -311,10 +317,16 @@ select
    case eventID when 1 then 'braemar' when 2 then 'open' when 3 then 'wob'
      when 4 then 'hwfd' when 5 then 'lwfd' when 6 then 'lhmr' when 7 then 'hhmr'
      when 8 then 'caber' when 9 then 'sheaf' end,
-   if(eventID = 8, NULL, distance),
-   if(eventID <> 8, NULL, clock),
+   distance,
+   if(eventID <> 8, NULL, clock_hours * 60 + clock_minutes),
    weight,
-   score
+   score,
+   case class
+       when 'Masters50+' then 'masters'
+       when 'Masters60+' then 'masters'
+       when 'Womensmaster50+' then 'womensmaster'
+       when 'Womensmaster60+' then 'womensmaster'
+       else lower(class) end
 from score_results
 into outfile '/Users/james/src/csaf/csaf/mysql_results_dump.csv'
  fields terminated by ',' optionally enclosed by '"'

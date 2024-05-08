@@ -12,8 +12,42 @@
            :tw styles/a-tw}
        last-name ", " first-name])]] )
 
+(defn ?>
+  ([x pred then-f]
+   (if (pred x) (then-f x) x))
+  ([x pred then-f else-f]
+   (if (pred x) (then-f x) (else-f x))))
+
+(defn float= [x y]
+  (let [[x y] (map float [x y])]
+    (and (not (< x y)) (not (> x y)))))
+
+(defn display-distance
+  [dist-inches]
+  (str (?> (int (/ (float dist-inches) 12)) zero? (constantly "") #(str % "′"))
+       (?> (mod dist-inches 12) zero? (constantly "")
+           #?(:cljs #(str % "″")
+              :clj (fn [x]
+                     (if (float= x (int x))
+                       (format "%d″" (int x))
+                       (format "%.1f″" x)))))))
+
+(defn display-weight
+  [weight]
+  #?(:cljs (str weight "lbs")
+     :clj (if (float= weight (int weight))
+            (format "%dlbs" (int weight))
+            (format "%.1flbs" (float weight)))))
+
+(defn display-clock
+  [clock-minutes]
+  #?(:cljs (str (int (/ clock-minutes 60)) ":" (mod clock-minutes 60))
+     :clj (format "%02d:%02d"
+                  (?> (int (/ clock-minutes 60)) zero? (constantly 12))
+                  (mod clock-minutes 60))))
+
 (defn athlete-view
-  [member results]
+  [member]
   [:div {:tw "flex flex-col gap-4"}
    [:h2 {:tw "text-xl"} (:members/first-name member) " " (:members/last-name member)]
    (when-let [email (:members/email member)]
@@ -48,6 +82,32 @@
 
    [:div.prs
     [:h3 {:tw "text-lg text-gray-500"} "PERSONAL BESTS"]
+
+    [:table {:tw "w-full"}
+     [:thead
+      [:tr [:th "Event"] [:th "Class"] [:th "Location"] [:th "Mark"] [:th "Date"]]]
+     [:tbody
+      (for [event-name ["braemar" "open" "sheaf" "caber" "lwfd" "hwfd" "lhmr" "hhmr" "wob"]
+            :let [result (get-in member [:member/prs event-name])]]
+        [:tr
+         [:td event-name]
+         [:td (string/capitalize (:class result))]
+         [:td {:tw "text-sm"} (:games/name result)]
+         [:td
+          (->> [(when (= event-name "caber")
+                  (some-> (:clock-minutes result) display-clock))
+                (display-distance (:distance-inches result))
+                (when (#{"braemar" "open" "sheaf" "caber"} event-name)
+                    (some-> (:weight result) (?> zero? (constantly nil))
+                        display-weight))]
+               (remove nil?)
+               (string/join " "))]
+         [:td (:game-instances/date result)]])
+      ]]]
+
+
+   [:div.record
+    [:h3 {:tw "text-lg text-gray-500"} "GAMES RECORD"]
     [:table
      [:thead
       [:tr
@@ -61,13 +121,7 @@
        [:th "HWFD"]
        [:th "LWFD"]
        [:th "HHMR"]
-       [:th "WOB"]]]]
-    [:code "TODO"]]
-
-
-   [:div.record
-    [:h3 {:tw "text-lg text-gray-500"} "GAMES RECORD"]
-    [:code "TODO"]]
+       [:th "WOB"]]]]]
 
    ]
   )
