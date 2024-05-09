@@ -34,10 +34,10 @@
 
 (defn display-weight
   [weight]
-  #?(:cljs (str weight "lbs")
+  #?(:cljs (str weight "lb")
      :clj (if (float= weight (int weight))
-            (format "%dlbs" (int weight))
-            (format "%.1flbs" (float weight)))))
+            (format "%dlb" (int weight))
+            (format "%.1flb" (float weight)))))
 
 (defn display-clock
   [clock-minutes]
@@ -46,9 +46,12 @@
                   (?> (int (/ clock-minutes 60)) zero? (constantly 12))
                   (mod clock-minutes 60))))
 
+(def events-in-order
+  ["braemar" "open" "sheaf" "caber" "lwfd" "hwfd" "lhmr" "hhmr" "wob"])
+
 (defn athlete-view
   [member]
-  [:div {:tw "flex flex-col gap-4"}
+  [:div {:tw "flex flex-col gap-4 mx-4"}
    [:h2 {:tw "text-xl"} (:members/first-name member) " " (:members/last-name member)]
    (when-let [email (:members/email member)]
      [:a {:tw styles/a-tw :href (str "mailto:" email)} email])
@@ -87,9 +90,9 @@
      [:thead
       [:tr [:th "Event"] [:th "Class"] [:th "Location"] [:th "Mark"] [:th "Date"]]]
      [:tbody
-      (for [event-name ["braemar" "open" "sheaf" "caber" "lwfd" "hwfd" "lhmr" "hhmr" "wob"]
+      (for [event-name events-in-order
             :let [result (get-in member [:member/prs event-name])]]
-        [:tr
+        [:tr {:tw "odd:bg-gray-100"}
          [:td event-name]
          [:td (string/capitalize (:class result))]
          [:td {:tw "text-sm"} (:games/name result)]
@@ -112,6 +115,7 @@
       [:tr
        [:th "Date"]
        [:th "Location"]
+       [:th "Place"]
        [:th "BRE"]
        [:th "STON"]
        [:th "SHF"]
@@ -120,7 +124,30 @@
        [:th "HWFD"]
        [:th "LWFD"]
        [:th "HHMR"]
-       [:th "WOB"]]]]]
-
-   ]
-  )
+       [:th "WOB"]]]
+     [:tbody
+      (for [game (:member/game-results member)]
+        [:tr {:tw "odd:bg-gray-100"}
+         [:td (str (:game-instances/date game))]
+         [:td {:tw "text-sm"} (:game-name game)]
+         [:td "?"]
+         (for [event-name events-in-order
+               :let [result (get-in game [:result event-name])]]
+           [:td
+            (if (or (nil? (:weight result)) (nil? (:distance-inches result))
+                  (and (zero? (:weight result)) (zero? (:distance-inches result))))
+              "N/A"
+              (case event-name
+                "caber"
+                [:<>
+                 (display-clock (:clock-minutes result))
+                 " "
+                 (display-distance (:distance-inches result))
+                 [:br]
+                 (display-weight (:weight result))]
+                ("braemar" "open" "sheaf")
+                [:<>
+                 (display-distance (:distance-inches result))
+                 [:br]
+                 (display-weight (:weight result))]
+                (display-distance (:distance-inches result))))])])]]]])
