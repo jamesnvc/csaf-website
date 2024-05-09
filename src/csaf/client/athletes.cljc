@@ -46,6 +46,17 @@
                   (?> (int (/ clock-minutes 60)) zero? (constantly 12))
                   (mod clock-minutes 60))))
 
+(def display-event-name
+  {"braemar" "Braemar Stone"
+   "open" "Open Stone"
+   "sheaf" "Sheaf"
+   "caber" "Caber"
+   "lwfd" "Light Weight for Distance"
+   "hwfd" "Heavy Weight for Distance"
+   "lhmr" "Light Hammer"
+   "hhmr" "Heavy Hammer"
+   "wob" "Weight Over Bar"})
+
 (def events-in-order
   ["braemar" "open" "sheaf" "caber" "lwfd" "hwfd" "lhmr" "hhmr" "wob"])
 
@@ -93,7 +104,7 @@
       (for [event-name events-in-order
             :let [result (get-in member [:member/prs event-name])]]
         [:tr {:tw "odd:bg-gray-100"}
-         [:td event-name]
+         [:td (display-event-name event-name)]
          [:td (string/capitalize (:class result))]
          [:td {:tw "text-sm"} (:games/name result)]
          [:td
