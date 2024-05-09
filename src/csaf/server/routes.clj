@@ -5,6 +5,7 @@
    [clojure.string :as string]
    [bloom.omni.impl.crypto :as crypto]
    [huff2.core :as huff]
+   [csaf.client.home]
    [csaf.client.athletes :as athletes]
    [csaf.client.layout :as layout]
    [csaf.server.db :as db]))
@@ -56,6 +57,13 @@
 
 (def routes
   [
+   [[:get "/"]
+    (fn [_]
+      {:status 200
+       :headers {"Content-Type" "text/html; charset=utf-8"}
+       :body (->> (csaf.client.home/home-view [:h1 "Coming Soon"])
+                  layout/layout
+                  page)})]
    [[:get "/athletes"]
     (fn [_]
       {:status 200
