@@ -137,4 +137,12 @@ create table if not exists game_member_results (
 create index if not exists game_member_results_member_idx on game_member_results(member_id, game_instance);
 create index if not exists game_member_results_game_idx on game_member_results(game_instance, member_id);
 
+create table if not exists game_results_placing (
+   "member_id" integer not null references members(id),
+   "game_instance_id" integer not null references game_instances(id),
+   "placing" integer not null check ("placing" > 0),
+   "class" membership_class_code not null,
+   primary key(member_id, game_instance_id)
+);
+
 COMMIT;

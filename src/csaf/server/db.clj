@@ -39,6 +39,7 @@
 
 (comment
   (hikari/close-datasource @datasource)
+  (jdbc/execute! @datasource ["drop table game_results_placing"])
   )
 
 (defn init-db!
@@ -79,11 +80,13 @@
          @datasource
          ["select json_agg(row_to_json(game_member_results.*)) as result,
         game_instances.\"date\",
+        min(game_results_placing.placing) as placing,
         max(games.name) as game_name
       from game_member_results
       join game_instances on game_instances.id = game_member_results.game_instance
       join games on games.id = game_instances.game_id
-      where member_id = ?
+      join game_results_placing on game_member_results.member_id = game_results_placing.member_id and game_results_placing.game_instance_id = game_instances.id
+      where game_member_results.member_id = ?
       group by game_instances.id
       order by game_instances.date desc" member-id]
          jdbc/snake-kebab-opts)
@@ -99,7 +102,6 @@
 
 (comment
   (first (member-game-results 958))
-  {:result {"wob" {:member-id 958, :distance-inches 132.0, :game-instance 1236, :event "wob", :weight 56.0, :id 72532, :class "open", :score 628.5714, :clock-minutes nil}, "caber" {:member-id 958, :distance-inches 0.0, :game-instance 1236, :event "caber", :weight 0.0, :id 72525, :class "open", :score 0.0, :clock-minutes 0}, "sheaf" {:member-id 958, :distance-inches 240.0, :game-instance 1236, :event "sheaf", :weight 16.0, :id 72530, :class "open", :score 586.7971, :clock-minutes nil}, "hwfd" {:member-id 958, :distance-inches 171.5, :game-instance 1236, :event "hwfd", :weight 56.0, :id 72527, :class "open", :score 305.7041, :clock-minutes nil}, "lwfd" {:member-id 958, :distance-inches 465.0, :game-instance 1236, :event "lwfd", :weight 28.0, :id 72529, :class "open", :score 424.6575, :clock-minutes nil}, "lhmr" {:member-id 958, :distance-inches 866.5, :game-instance 1236, :event "lhmr", :weight 16.0, :id 72528, :class "open", :score 494.0137, :clock-minutes nil}, "braemar" {:member-id 958, :distance-inches 265.0, :game-instance 1236, :event "braemar", :weight 28.5, :id 72524, :class "open", :score 513.5659, :clock-minutes nil}, "open" {:member-id 958, :distance-inches 287.5, :game-instance 1236, :event "open", :weight 22.0, :id 72531, :class "open", :score 592.9395, :clock-minutes nil}, "hhmr" {:member-id 958, :distance-inches 624.0, :game-instance 1236, :event "hhmr", :weight 22.0, :id 72526, :class "open", :score 433.7852, :clock-minutes nil}}, :game-instances/date #inst "2014-10-19T04:00:00.000-00:00", :game-name "Grafton Fall Brawl"}
   )
 
 (defn member-pr-results

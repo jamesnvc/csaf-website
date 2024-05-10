@@ -364,3 +364,59 @@ end;
 | setval     |
 | 143735     |
 | COMMIT     |
+
+** Placings
+
+#+begin_src sql :engine mysql :dbhost localhost :dbport 3306 :dbuser root :dbpassword foobar :database csaf_dump
+describe score_placings;
+#+end_src
+
+#+RESULTS:
+| Field           | Type        | Null | Key | Default | Extra          |
+|-----------------+-------------+------+-----+---------+----------------|
+| placeID         | int         | NO   | PRI |    NULL | auto_increment |
+| memberID        | int         | NO   | MUL |       0 |                |
+| dateID          | int         | NO   |     |       0 |                |
+| competitionDate | varchar(20) | YES  |     |    NULL |                |
+| placing         | int         | NO   |     |       0 |                |
+| class           | varchar(50) | YES  |     |    NULL |                |
+| date_year       | int         | NO   | MUL |       0 |                |
+
+
+#+begin_src bash
+rm '/Users/james/src/csaf/csaf/mysql_placings_dump.csv'
+#+end_src
+
+#+RESULTS:
+
+#+begin_src sql :engine mysql :dbhost localhost :dbport 3306 :dbuser root :dbpassword foobar :database csaf_dump
+select
+   memberID,
+   dateID,
+   min(placing),
+   case class
+       when 'Masters50+' then 'masters'
+       when 'Masters60+' then 'masters'
+       when 'Womensmaster50+' then 'womensmaster'
+       when 'Womensmaster60+' then 'womensmaster'
+       else lower(coalesce(class, 'unknown')) end
+from score_placings
+where placing > 0 -- only 107 where this is the case - what does that mean?
+  and dateID <> 0 -- dunno what this is
+group by memberID, dateID, class
+into outfile '/Users/james/src/csaf/csaf/mysql_placings_dump.csv'
+ fields terminated by ',' optionally enclosed by '"'
+ lines terminated by '\n'
+#+end_src
+
+#+RESULTS:
+|---|
+
+#+begin_src sql :engine postgresql :dbhost localhost :dbport 5432 :dbuser tester :dbpassword test :database csaf_dev
+\copy game_results_placing from '/Users/james/src/csaf/csaf/mysql_placings_dump.csv' with (format csv, NULL '\N', quote '"', escape '\');
+#+end_src
+
+#+RESULTS:
+| SET        |
+|------------|
+| COPY 10362 |

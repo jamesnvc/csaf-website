@@ -24,13 +24,14 @@
 
 (defn display-distance
   [dist-inches]
-  (str (?> (int (/ (float dist-inches) 12)) zero? (constantly "") #(str % "′"))
-       (?> (mod dist-inches 12) zero? (constantly "")
-           #?(:cljs #(str % "″")
-              :clj (fn [x]
-                     (if (float= x (int x))
-                       (format "%d″" (int x))
-                       (format "%.1f″" x)))))))
+  (when (some? dist-inches)
+    (str (?> (int (/ (float dist-inches) 12)) zero? (constantly "") #(str % "′"))
+         (?> (mod dist-inches 12) zero? (constantly "")
+             #?(:cljs #(str % "″")
+                :clj (fn [x]
+                       (if (float= x (int x))
+                         (format "%d″" (int x))
+                         (format "%.1f″" x))))))))
 
 (defn display-weight
   [weight]
@@ -105,7 +106,7 @@
             :let [result (get-in member [:member/prs event-name])]]
         [:tr {:tw "odd:bg-gray-100"}
          [:td (display-event-name event-name)]
-         [:td (string/capitalize (:class result))]
+         [:td (some-> (:class result) string/capitalize)]
          [:td {:tw "text-sm"} (:games/name result)]
          [:td
           (->> [(when (= event-name "caber")
@@ -141,7 +142,7 @@
         [:tr {:tw "odd:bg-gray-100"}
          [:td (str (:game-instances/date game))]
          [:td {:tw "text-sm"} (:game-name game)]
-         [:td "?"]
+         [:td (pr-str (:placing game))]
          (for [event-name events-in-order
                :let [result (get-in game [:result event-name])]]
            [:td
