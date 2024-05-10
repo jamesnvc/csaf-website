@@ -8,8 +8,10 @@
      [:img {:src "/images/csaf_logo.jpg" :alt "CSAF Logo"
             :tw "w-10rem"}]]
     [:div {:tw "flex-grow flex flex-col"}
-     [:h1 {:tw "font-urbanist text-gray-500 text-center"}
-      "Canadian " [:span {:tw "text-black"} "Scottish Athletic"] " Federation"]
+     [:div {:style {:container-type "inline-size"}}
+      [:h1 {:tw "font-urbanist text-gray-500 text-center"
+            :style {:font-size "5cqi"}}
+       "Canadian " [:span {:tw "text-black"} "Scottish Athletic"] " Federation"]]
      (let [a-tw "inline-block text-center hover:text-red-800 no-underline text-black h-2.5rem"
            details-tw "group text-center"
            details-content-tw "absolute border-red-800 border-1px border-solid text-left invisible group-hover:visible bg-white z-100"]
