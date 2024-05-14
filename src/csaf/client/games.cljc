@@ -56,27 +56,26 @@
                  [:td {:tw "bg-white"}]
                  [:td (:members/last-name result) ", " (:members/first-name result)]
                  [:td (:game-results-placing/placing result)]
-                 (let [event-results (group-by :game-member-results/event (:events result))]
-                   (for [event-name results/events-in-order
-                         :let [{:game-member-results/keys [distance-inches clock-minutes weight]}
-                               (get-in event-results [event-name 0])]]
-                     [:td
-                      (if (or (nil? weight) (nil? distance-inches)
-                              (and (zero? weight) (zero? distance-inches)))
-                        "N/A"
-                        (case event-name
-                          "caber"
-                          [:<>
-                           (results/display-clock clock-minutes)
-                           " "
-                           (results/display-distance distance-inches)
-                           [:br]
-                           (results/display-weight weight)]
-                          ("braemar" "open" "sheaf")
-                          [:<>
-                           (results/display-distance distance-inches)
-                           [:br]
-                           (results/display-weight weight)]
-                          (results/display-distance distance-inches)))]))
+                 (for [event-name results/events-in-order
+                       :let [{:game-member-results/keys [distance-inches clock-minutes weight]}
+                             (get-in result [:events event-name])]]
+                   [:td
+                    (if (or (nil? weight) (nil? distance-inches)
+                            (and (zero? weight) (zero? distance-inches)))
+                      "N/A"
+                      (case event-name
+                        "caber"
+                        [:<>
+                         (results/display-clock clock-minutes)
+                         " "
+                         (results/display-distance distance-inches)
+                         [:br]
+                         (results/display-weight weight)]
+                        ("braemar" "open" "sheaf")
+                        [:<>
+                         (results/display-distance distance-inches)
+                         [:br]
+                         (results/display-weight weight)]
+                        (results/display-distance distance-inches)))])
                  ])]])]]))
     ]])
