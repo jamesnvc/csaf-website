@@ -7,6 +7,7 @@
    [huff2.core :as huff]
    [csaf.client.home]
    [csaf.client.athletes :as athletes]
+   [csaf.client.games :as games]
    [csaf.client.layout :as layout]
    [csaf.server.db :as db]))
 
@@ -28,7 +29,7 @@
 
 (defn page
   [content]
-  (->> [:html
+  (->> [:html {:lang "en"}
         [:head
          [:title "CSAF"]
          [:meta {:name "viewport"
@@ -88,4 +89,16 @@
                     page)}
         {:status 404}))
     []]
+
+   [[:get "/games"]
+    (fn [{params :query-params :as req}]
+      {:status 200
+       :headers {"Content-Type" "text/html; charset=utf-8"}
+       :body (->> (games/games-history-view
+                    {:available-years (db/available-years-for-records)
+                     :selected params
+                     :games (when-let [year (->int (get params "filter-year"))]
+                              (db/games-for-year year))})
+                  layout/layout
+                  page)})]
    ])

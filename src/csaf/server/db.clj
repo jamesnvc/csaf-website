@@ -154,3 +154,72 @@
       (get "caber") :game-instances/date class)
 
   )
+
+(defn available-years-for-records
+  []
+  (jdbc/execute!
+    @datasource
+    ["select distinct extract(year from \"date\") as year
+      from game_instances order by year desc"]))
+
+(defn games-for-year
+  [year]
+  (->>
+    (jdbc/plan
+      @datasource
+      ["select games.name, to_char(game_instances.date, 'YYYY-MM-DD') as date,
+         game_results_placing.placing,
+         members.id, members.first_name, members.last_name,
+         game_member_results.event, game_member_results.distance_inches,
+            game_member_results.clock_minutes, game_member_results.weight,
+            game_member_results.class
+      from game_instances
+      join games on games.id = game_instances.game_id
+      join game_member_results on game_member_results.game_instance = game_instances.id
+      join game_results_placing on game_results_placing.game_instance_id = game_instances.id and game_results_placing.member_id = game_member_results.member_id
+      join members on game_member_results.member_id = members.id
+      where extract(year from \"date\") = ?
+      "
+       year]
+      jdbc/snake-kebab-opts)
+    (reduce
+      (fn [acc row]
+        (cond-> acc
+          (not (contains? acc (:date row)))
+          (assoc (:date row) {:games/name (:name row)
+                              :results {(:id row)
+                                        {:members/id (:id row)
+                                         :members/first-name (:first_name row)
+                                         :members/last-name (:last_name row)
+                                         :game-results-placing/placing (:placing row)
+                                         :game-member-results/class (:class row)
+                                         :events [{:game-member-results/event (:event row)
+                                                   :game-member-results/class (:class row)
+                                                   :game-member-results/clock-minutes (:clock_minutes row)
+                                                   :game-member-results/distance-inches (:distance_inches row)
+                                                   :game-member-results/weight (:weight row)}]}}})
+          (not (contains? (get-in acc [(:date row) :results]) (:id row)))
+          (assoc-in [(:date row) :results (:id row)]
+                    {:members/id (:id row)
+                     :members/first-name (:first_name row)
+                     :members/last-name (:last_name row)
+                     :game-results-placing/placing (:placing row)
+                     :game-member-results/class (:class row)
+                     :events [{:game-member-results/event (:event row)
+                               :game-member-results/class (:class row)
+                               :game-member-results/clock-minutes (:clock_minutes row)
+                               :game-member-results/distance-inches (:distance_inches row)
+                               :game-member-results/weight (:weight row)}]})
+
+          (contains? (get-in acc [(:date row) :results]) (:id row))
+          (update-in [(:date row) :results (:id row) :events]
+                        conj {:game-member-results/event (:event row)
+                              :game-member-results/class (:class row)
+                              :game-member-results/clock-minutes (:clock_minutes row)
+                              :game-member-results/distance-inches (:distance_inches row)
+                              :game-member-results/weight (:weight row)}))) {})))
+
+(comment
+
+  (time (games-for-year 2023))
+  )

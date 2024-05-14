@@ -32,7 +32,7 @@
           [:ul {:tw "list-none p-2 w-full"}
           [:li [:a {:tw a-tw :href "/"} "CSAF Rules"]]
           [:li [:a {:tw a-tw :href "/"} "Games Setup"]]
-          [:li [:a {:tw a-tw :href "/"} "View Games History"]]
+          [:li [:a {:tw a-tw :href "/games"} "View Games History"]]
           [:li [:a {:tw a-tw :href "/"} "Rankings"]]
           [:li [:a {:tw a-tw :href "/"} "Records"]]]]]
         [:a {:tw a-tw :href "/"} "Information"]
