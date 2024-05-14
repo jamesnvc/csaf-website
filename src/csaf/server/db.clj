@@ -187,18 +187,8 @@
         (cond-> acc
           (not (contains? acc (:date row)))
           (assoc (:date row) {:games/name (:name row)
-                              :results {(:id row)
-                                        {:members/id (:id row)
-                                         :members/first-name (:first_name row)
-                                         :members/last-name (:last_name row)
-                                         :game-results-placing/placing (:placing row)
-                                         :game-member-results/class (:class row)
-                                         :events {(:event row)
-                                                  {:game-member-results/event (:event row)
-                                                   :game-member-results/class (:class row)
-                                                   :game-member-results/clock-minutes (:clock_minutes row)
-                                                   :game-member-results/distance-inches (:distance_inches row)
-                                                   :game-member-results/weight (:weight row)}}}}})
+                              :results {}})
+
           (not (contains? (get-in acc [(:date row) :results]) (:id row)))
           (assoc-in [(:date row) :results (:id row)]
                     {:members/id (:id row)
@@ -206,14 +196,9 @@
                      :members/last-name (:last_name row)
                      :game-results-placing/placing (:placing row)
                      :game-member-results/class (:class row)
-                     :events {(:event row)
-                              {:game-member-results/event (:event row)
-                               :game-member-results/class (:class row)
-                               :game-member-results/clock-minutes (:clock_minutes row)
-                               :game-member-results/distance-inches (:distance_inches row)
-                               :game-member-results/weight (:weight row)}}})
+                     :events {}})
 
-          (contains? (get-in acc [(:date row) :results]) (:id row))
+          true
           (assoc-in [(:date row) :results (:id row) :events (:event row)]
                     {:game-member-results/event (:event row)
                      :game-member-results/class (:class row)
