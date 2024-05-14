@@ -1,7 +1,9 @@
 (ns csaf.client.athletes
   (:require
    [clojure.string :as string]
-   [csaf.client.styles :as styles]))
+   [csaf.client.styles :as styles]
+   [csaf.client.results :refer [?> display-clock display-distance display-weight
+                                events-in-order display-event-name]]))
 
 (defn all-athletes-view
   [athletes]
@@ -11,55 +13,6 @@
       [:a {:href (str "/athletes/" id)
            :tw styles/a-tw}
        last-name ", " first-name])]] )
-
-(defn ?>
-  ([x pred then-f]
-   (if (pred x) (then-f x) x))
-  ([x pred then-f else-f]
-   (if (pred x) (then-f x) (else-f x))))
-
-(defn float= [x y]
-  (let [[x y] (map float [x y])]
-    (and (not (< x y)) (not (> x y)))))
-
-(defn display-distance
-  [dist-inches]
-  (when (some? dist-inches)
-    (str (?> (int (/ (float dist-inches) 12)) zero? (constantly "") #(str % "′"))
-         (?> (mod dist-inches 12) zero? (constantly "")
-             #?(:cljs #(str % "″")
-                :clj (fn [x]
-                       (if (float= x (int x))
-                         (format "%d″" (int x))
-                         (format "%.1f″" x))))))))
-
-(defn display-weight
-  [weight]
-  #?(:cljs (str weight "lb")
-     :clj (if (float= weight (int weight))
-            (format "%dlb" (int weight))
-            (format "%.1flb" (float weight)))))
-
-(defn display-clock
-  [clock-minutes]
-  #?(:cljs (str (int (/ clock-minutes 60)) ":" (mod clock-minutes 60))
-     :clj (format "%02d:%02d"
-                  (?> (int (/ clock-minutes 60)) zero? (constantly 12))
-                  (mod clock-minutes 60))))
-
-(def display-event-name
-  {"braemar" "Braemar Stone"
-   "open" "Open Stone"
-   "sheaf" "Sheaf"
-   "caber" "Caber"
-   "lwfd" "Light Weight for Distance"
-   "hwfd" "Heavy Weight for Distance"
-   "lhmr" "Light Hammer"
-   "hhmr" "Heavy Hammer"
-   "wob" "Weight Over Bar"})
-
-(def events-in-order
-  ["braemar" "open" "sheaf" "caber" "lwfd" "hwfd" "lhmr" "hhmr" "wob"])
 
 (defn athlete-view
   [member]
@@ -104,7 +57,7 @@
      [:tbody
       (for [event-name events-in-order
             :let [result (get-in member [:member/prs event-name])]]
-        [:tr {:tw "odd:bg-gray-100"}
+        [:tr
          [:td (display-event-name event-name)]
          [:td (some-> (:class result) string/capitalize)]
          [:td {:tw "text-sm"} (:games/name result)]
@@ -139,7 +92,7 @@
        [:th "WOB"]]]
      [:tbody
       (for [game (:member/game-results member)]
-        [:tr {:tw "odd:bg-gray-100"}
+        [:tr
          [:td (str (:game-instances/date game))]
          [:td {:tw "text-sm"} (:game-name game)]
          [:td (pr-str (:placing game))]

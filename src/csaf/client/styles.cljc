@@ -39,6 +39,10 @@
    [:body
     {:background-image "url(/images/celtic_knot_bg.jpg)"}]
 
+   [:table
+    [:tbody
+     ["tr:nth-child(odd)" {:background-color "rgba(243,244,246,var(--gi-bg-opacity))"} ]]]
+
    [:.font-urbanist
     {:font-family "'Urbanist', sans-serif"
      :font-weight "200"}]
