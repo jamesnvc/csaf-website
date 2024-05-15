@@ -12,7 +12,8 @@
     [:form {:method "get" :action "/games"}
      [:h2 "Year"]
      [:div {:tw "flex flex-row flex-wrap gap-4"}
-      [:label [:input {:type "radio" :name "filter-year"
+      ;; Should we allow having no year? So much data...
+      #_[:label [:input {:type "radio" :name "filter-year"
                        :value "false" :checked (not (get selected "filter-year"))}]
        "Any"]
       (for [{:keys [year]} available-years]
@@ -21,12 +22,23 @@
                   :checked (= (get selected "filter-year") (str year))}]
          (str year)])]
 
-     #_[:h2 "Class"]
+     [:div [:h2 "Class"]
+      [:div {:tw "flex flex-row flax-wrap gap-4"}
+       (for [class ["juniors" "lightweight" "amateurs" "open" "masters" "womens"
+                    "womensmaster"]]
+         [:label
+          [:input {:type "checkbox" :name "class"
+                   :value class :checked (contains? (set (get selected "class"))
+                                                    class)
+                   :tw "mr-1"}]
+          (if (= class "womensmaster")
+            "Women's Masters"
+            (string/capitalize class))])]]
 
      #_[:h2 "Event Type"]
 
      [:button {:tw "px-2 py-1 rounded bg-gray-100 border-1px border-solid border-black"}
-      "Search"]]]
+      "Filter"]]]
 
    [:div.results {:tw "flex flex-col gap-8 mx-4"}
     (if (empty? games)

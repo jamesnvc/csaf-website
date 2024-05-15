@@ -1,8 +1,9 @@
 (ns csaf.client.athletes
   (:require
    [clojure.string :as string]
+   [csaf.util :refer [?>]]
    [csaf.client.styles :as styles]
-   [csaf.client.results :refer [?> display-clock display-distance display-weight
+   [csaf.client.results :refer [display-clock display-distance display-weight
                                 events-in-order display-event-name]]))
 
 (defn all-athletes-view

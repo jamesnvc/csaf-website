@@ -9,6 +9,7 @@
    [csaf.client.athletes :as athletes]
    [csaf.client.games :as games]
    [csaf.client.layout :as layout]
+   [csaf.util :refer [?>]]
    [csaf.server.db :as db]))
 
 (defn tw->class
@@ -56,6 +57,9 @@
     (catch java.lang.NumberFormatException _
       nil)))
 
+(def class-names
+  #{"juniors" "lightweight" "amateurs" "open" "masters" "womens" "womensmaster"})
+
 (def routes
   [
    [[:get "/"]
@@ -91,14 +95,22 @@
     []]
 
    [[:get "/games"]
-    (fn [{params :query-params :as req}]
-      {:status 200
-       :headers {"Content-Type" "text/html; charset=utf-8"}
-       :body (->> (games/games-history-view
-                    {:available-years (db/available-years-for-records)
-                     :selected params
-                     :games (when-let [year (->int (get params "filter-year"))]
-                              (db/games-for-year year))})
-                  layout/layout
-                  page)})]
+    (fn [{{:strs [filter-year class]} :query-params}]
+      (let [avail-years (db/available-years-for-records)
+            filter-year (or (->int filter-year)
+                            (:year (first avail-years)))
+            classes (->> (?> class string? vector)
+                         (filter class-names)
+                         seq)]
+        {:status 200
+         :headers {"Content-Type" "text/html; charset=utf-8"}
+         :body (->> (games/games-history-view
+                      {:available-years avail-years
+                       :selected {"filter-year" (str filter-year)
+                                  "class" classes}
+                       :games (db/games-history
+                                {:year filter-year
+                                 :classes classes})})
+                    layout/layout
+                    page)}))]
    ])

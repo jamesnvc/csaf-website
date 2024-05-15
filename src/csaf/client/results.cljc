@@ -1,10 +1,6 @@
-(ns csaf.client.results)
-
-(defn ?>
-  ([x pred then-f]
-   (if (pred x) (then-f x) x))
-  ([x pred then-f else-f]
-   (if (pred x) (then-f x) (else-f x))))
+(ns csaf.client.results
+  (:require
+   [csaf.util :refer [?>]]))
 
 (defn float= [x y]
   (let [[x y] (map float [x y])]

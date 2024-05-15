@@ -162,12 +162,16 @@
     ["select distinct extract(year from \"date\") as year
       from game_instances order by year desc"]))
 
-(defn games-for-year
-  [year]
+(defn tee [x] (prn x) x)
+
+(defn games-history
+  [{:keys [year classes events]}]
   (->>
     (jdbc/plan
       @datasource
-      ["select games.name, to_char(game_instances.date, 'YYYY-MM-DD') as date,
+      (cond->
+          [(str
+             "select games.name, to_char(game_instances.date, 'YYYY-MM-DD') as date,
          game_results_placing.placing,
          members.id, members.first_name, members.last_name,
          game_member_results.event, game_member_results.distance_inches,
@@ -178,9 +182,15 @@
       join game_member_results on game_member_results.game_instance = game_instances.id
       join game_results_placing on game_results_placing.game_instance_id = game_instances.id and game_results_placing.member_id = game_member_results.member_id
       join members on game_member_results.member_id = members.id
-      where extract(year from \"date\") = ?
+      where true
       "
-       year]
+             (when year
+               " and extract(year from \"date\") = ? ")
+             (when (seq classes)
+               " and game_member_results.class = any(cast(? as membership_class_code[]))"))]
+        (some? year) (conj year)
+        (seq classes) (conj (into-array java.lang.String classes))
+        true (tee))
       jdbc/snake-kebab-opts)
     (reduce
       (fn [acc row]
@@ -208,5 +218,5 @@
 
 (comment
 
-  (time (games-for-year 2023))
+  (time (count (games-history {:year 2023 :classes ["lightweight" "masters"]})))
   )
