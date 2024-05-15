@@ -162,8 +162,6 @@
     ["select distinct extract(year from \"date\") as year
       from game_instances order by year desc"]))
 
-(defn tee [x] (prn x) x)
-
 (defn games-history
   [{:keys [year classes events]}]
   (->>
@@ -189,8 +187,7 @@
              (when (seq classes)
                " and game_member_results.class = any(cast(? as membership_class_code[]))"))]
         (some? year) (conj year)
-        (seq classes) (conj (into-array java.lang.String classes))
-        true (tee))
+        (seq classes) (conj (into-array java.lang.String classes)))
       jdbc/snake-kebab-opts)
     (reduce
       (fn [acc row]
