@@ -8,6 +8,7 @@
    [csaf.client.home]
    [csaf.client.athletes :as athletes]
    [csaf.client.games :as games]
+   [csaf.client.results :as results]
    [csaf.client.layout :as layout]
    [csaf.util :refer [?>]]
    [csaf.server.db :as db]))
@@ -95,10 +96,12 @@
     []]
 
    [[:get "/games"]
-    (fn [{{:strs [filter-year class]} :query-params}]
+    (fn [{{:strs [filter-year class filter-event]} :query-params}]
       (let [avail-years (db/available-years-for-records)
             filter-year (or (->int filter-year)
                             (:year (first avail-years)))
+            filter-event (some->> filter-event
+                           ((set results/events-in-order)))
             classes (->> (?> class string? vector)
                          (filter class-names)
                          seq)]
@@ -107,10 +110,12 @@
          :body (->> (games/games-history-view
                       {:available-years avail-years
                        :selected {"filter-year" (str filter-year)
-                                  "class" classes}
+                                  "class" classes
+                                  "filter-event" filter-event}
                        :games (db/games-history
                                 {:year filter-year
-                                 :classes classes})})
+                                 :classes classes
+                                 :event filter-event})})
                     layout/layout
                     page)}))]
    ])

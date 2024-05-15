@@ -42,5 +42,16 @@
    "hhmr" "Heavy Hammer"
    "wob" "Weight Over Bar"})
 
+(def abbrev-event-name
+  {"braemar" "BRAE"
+   "open" "STON"
+   "sheaf" "SHF"
+   "caber" "CABR"
+   "lwfd" "LWFD"
+   "hwfd" "HWFD"
+   "lhmr" "LHMR"
+   "hhmr" "HHMR"
+   "wob" "WOB"})
+
 (def events-in-order
   ["braemar" "open" "sheaf" "caber" "lwfd" "hwfd" "lhmr" "hhmr" "wob"])

@@ -9,20 +9,22 @@
    [:h1 "COMPETITION HISTORY"]
    [:div.filters {:tw "mx-8"}
     [:h1 "Filter By"]
-    [:form {:method "get" :action "/games"}
-     [:h2 "Year"]
-     [:div {:tw "flex flex-row flex-wrap gap-4"}
-      ;; Should we allow having no year? So much data...
-      #_[:label [:input {:type "radio" :name "filter-year"
-                       :value "false" :checked (not (get selected "filter-year"))}]
-       "Any"]
-      (for [{:keys [year]} available-years]
-        [:label
-         [:input {:type "radio" :name "filter-year" :value (str year)
-                  :checked (= (get selected "filter-year") (str year))}]
-         (str year)])]
+    [:form {:method "get" :action "/games"
+            :tw "flex flex-col gap-3"}
+     [:fieldset
+      [:legend "Year"]
+      [:div {:tw "flex flex-row flex-wrap gap-4"}
+       ;; Should we allow having no year? So much data...
+       #_[:label [:input {:type "radio" :name "filter-year"
+                          :value "false" :checked (not (get selected "filter-year"))}]
+          "All"]
+       (for [{:keys [year]} available-years]
+         [:label
+          [:input {:type "radio" :name "filter-year" :value (str year)
+                   :checked (= (get selected "filter-year") (str year))}]
+          (str year)])]]
 
-     [:div [:h2 "Class"]
+     [:fieldset [:legend "Class"]
       [:div {:tw "flex flex-row flax-wrap gap-4"}
        (for [class ["juniors" "lightweight" "amateurs" "open" "masters" "womens"
                     "womensmaster"]]
@@ -35,7 +37,20 @@
             "Women's Masters"
             (string/capitalize class))])]]
 
-     #_[:h2 "Event Type"]
+     [:fieldset [:legend "Event Type"]
+      [:div {:tw "flex flex-row flex-wrap gap-4"}
+       [:label
+        [:input {:type "radio" :name "filter-event"
+                 :value "false" :checked (not (get selected "filter-event"))
+                 :tw "mr-1"}]
+        "All"]
+       (for [event-name results/events-in-order]
+         [:label
+          [:input {:type "radio" :name "filter-event"
+                   :value event-name :checked (= (get selected "filter-event")
+                                                 event-name)
+                   :tw "mr-1"}]
+          (results/display-event-name event-name)])]]
 
      [:button {:tw "px-2 py-1 rounded bg-gray-100 border-1px border-solid border-black"}
       "Filter"]]]
@@ -59,9 +74,10 @@
                     [string/capitalize class]]]
               [:tr [:th ""]
                [:th "Name"] [:th "Place"]
-               [:th "BRAE"] [:th "STON"] [:th "SHF"] [:th "CABR"]
-               [:th "LWFD"] [:th "HWFD"] [:th "LHMR"] [:th "HHMR"]
-               [:th "WOB"]]]
+               (for [event-name results/events-in-order
+                     :when (or (not (get selected "filter-event"))
+                               (= event-name (get selected "filter-event")))]
+                 [:th (results/abbrev-event-name event-name)])]]
              [:tbody {:tw "text-sm"}
               (for [result (->> results (sort-by :game-results-placing/placing))]
                 [:tr
@@ -69,6 +85,8 @@
                  [:td (:members/last-name result) ", " (:members/first-name result)]
                  [:td (:game-results-placing/placing result)]
                  (for [event-name results/events-in-order
+                       :when (or (not (get selected "filter-event"))
+                                 (= event-name (get selected "filter-event")))
                        :let [{:game-member-results/keys [distance-inches clock-minutes weight]}
                              (get-in result [:events event-name])]]
                    [:td
@@ -88,6 +106,4 @@
                          (results/display-distance distance-inches)
                          [:br]
                          (results/display-weight weight)]
-                        (results/display-distance distance-inches)))])
-                 ])]])]]))
-    ]])
+                        (results/display-distance distance-inches)))])])]])]]))]])

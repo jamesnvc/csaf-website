@@ -163,7 +163,7 @@
       from game_instances order by year desc"]))
 
 (defn games-history
-  [{:keys [year classes events]}]
+  [{:keys [year classes event]}]
   (->>
     (jdbc/plan
       @datasource
@@ -185,9 +185,12 @@
              (when year
                " and extract(year from \"date\") = ? ")
              (when (seq classes)
-               " and game_member_results.class = any(cast(? as membership_class_code[]))"))]
+               " and game_member_results.class = any(cast(? as membership_class_code[]))")
+             (when event
+               " and game_member_results.event = cast(? as game_event_type)"))]
         (some? year) (conj year)
-        (seq classes) (conj (into-array java.lang.String classes)))
+        (seq classes) (conj (into-array java.lang.String classes))
+        (some? event) (conj event))
       jdbc/snake-kebab-opts)
     (reduce
       (fn [acc row]
