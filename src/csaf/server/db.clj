@@ -7,9 +7,12 @@
    [hikari-cp.core :as hikari]
    [csaf.config :as config]
    [jsonista.core :as json]
-   [camel-snake-kebab.core :refer [->kebab-case]])
+   [camel-snake-kebab.core :refer [->kebab-case]]
+   [crypto.password.bcrypt :as bcrypt])
   (:import
    (org.postgresql.util PGobject)))
+
+;;; Configuration
 
 (def mapper (json/object-mapper {:decode-key-fn keyword}))
 (def <-json #(json/read-value % mapper))
@@ -42,13 +45,56 @@
   (jdbc/execute! @datasource ["drop table game_results_placing"])
   )
 
+;;; Init
+
 (defn init-db!
   []
   (jdbc/execute!
     @datasource
     [(slurp (io/resource "sql/create_tables.sql"))]))
 
-;; [TODO] update the unhashed passwords in the database
+;;; Migrations
+
+(defn migrate-member-passwords!
+  "Hash user passwords"
+  []
+  (jdbc/execute! @datasource ["alter table members add column old_password text"])
+  (jdbc/execute! @datasource ["update members set old_password = password_hash"])
+  (->> (jdbc/plan @datasource ["select id, old_password from members"])
+       (run! (fn [row]
+               (jdbc/execute!
+                 @datasource
+                 ["update members set password_hash = ? where id = ?"
+                  (bcrypt/encrypt (:old_password row))
+                  (:id row)]))))
+  (jdbc/execute! @datasource ["alter table members drop column old_password"]))
+
+(defn migrate-membership-enum!
+  "Add 'admin' variant membership_site_code enum"
+  []
+  (jdbc/execute!
+    @datasource
+    ["alter type membership_site_code add value if not exists 'admin'"]))
+
+(defn migrate-member-roles!
+  []
+  (jdbc/execute!
+    @datasource
+    ["insert into members_roles (member_id, role)
+      select id, site_code from members"]))
+
+;;; member queries
+
+(defn authenticate-user
+  [{:keys [login password]}]
+  (when-let [{:members/keys [id password-hash]}
+             (jdbc/execute-one!
+               @datasource
+               ["select id, password_hash from members where login = ?"
+                login]
+               jdbc/snake-kebab-opts)]
+       (when (bcrypt/check password password-hash)
+         id)))
 
 (defn all-members
   []
@@ -154,6 +200,8 @@
       (get "caber") :game-instances/date class)
 
   )
+
+;;; Games queries
 
 (defn available-years-for-records
   []

@@ -17,7 +17,8 @@ do $$
       create type membership_site_code as enum (
         'member',
         'contact',
-        'board'
+        'board',
+        'admin'
       );
     end if;
 end$$;
@@ -72,6 +73,12 @@ create table if not exists members (
   "username" text,
   "banned_start_date" date,
   "banned_end_date" date
+);
+
+create table if not exists members_roles (
+  "member_id" integer not null references members(id),
+  "role" membership_site_code not null,
+  primary key ("member_id", "role")
 );
 
 do $$

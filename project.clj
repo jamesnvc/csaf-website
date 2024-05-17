@@ -22,6 +22,8 @@
                  [com.github.seancorfield/next.jdbc "1.3.847"]
                  [hikari-cp "2.13.0"]
                  [org.postgresql/postgresql "42.2.10"]
+
+                 [crypto-password "0.3.0"]
                  ]
 
   :repl-options {:init-ns csaf.core}
