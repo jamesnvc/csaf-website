@@ -420,3 +420,32 @@ into outfile '/Users/james/src/csaf/csaf/mysql_placings_dump.csv'
 | SET        |
 |------------|
 | COPY 10362 |
+
+#+begin_src sql :engine mysql :dbhost localhost :dbport 3306 :dbuser root :dbpassword foobar :database csaf_dump
+describe score_sheet_main
+#+end_src
+
+#+RESULTS:
+| Field        | Type         | Null | Key | Default           | Extra             |
+|--------------+--------------+------+-----+-------------------+-------------------|
+| sheet_main   | int          | NO   | PRI | NULL              | auto_increment    |
+| status       | varchar(30)  | NO   |     | pending           |                   |
+| gamesID      | int          | NO   |     | 0                 |                   |
+| games_year   | int          | NO   |     | 0                 |                   |
+| games_date   | varchar(20)  | YES  |     | NULL              |                   |
+| file_name    | varchar(100) | YES  |     | NULL              |                   |
+| add_date     | timestamp    | NO   |     | CURRENT_TIMESTAMP | DEFAULT_GENERATED |
+| submitted_by | varchar(50)  | YES  |     | NULL              |                   |
+| event_list   | varchar(200) | YES  |     | NULL              |                   |
+| weight_list  | varchar(200) | YES  |     | NULL              |                   |
+| length_list  | varchar(200) | YES  |     | NULL              |                   |
+
+#+begin_src sql :engine mysql :dbhost localhost :dbport 3306 :dbuser root :dbpassword foobar :database csaf_dump
+select distinct status from score_sheet_main
+#+end_src
+
+#+RESULTS:
+| status   |
+|----------|
+| complete |
+| pending  |
