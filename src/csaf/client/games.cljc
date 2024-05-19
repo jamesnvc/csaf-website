@@ -52,8 +52,7 @@
                    :tw "mr-1"}]
           (results/display-event-name event-name)])]]
 
-     [:button {:tw "px-2 py-1 rounded bg-gray-100 border-1px border-solid border-black"}
-      "Filter"]]]
+     [:button "Filter"]]]
 
    [:div.results {:tw "flex flex-col gap-8 mx-4"}
     (if (empty? games)

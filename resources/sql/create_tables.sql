@@ -161,11 +161,11 @@ do $$
     end if;
 end$$;
 
-create table if not exists score_sheet (
+create table if not exists score_sheets (
   "id" serial primary key,
   "status" score_sheet_status not null default 'pending',
-  "games_id" integer not null references games(id),
-  "games_date" date not null,
+  "games_id" integer references games(id),
+  "games_date" date,
   "created_at" timestamp with time zone not null default now(),
   "submitted_by" integer not null references members(id),
   "data" jsonb

@@ -43,6 +43,12 @@
     [:tbody
      ["tr:nth-child(odd)" {:background-color "rgba(243,244,246,var(--gi-bg-opacity))"} ]]]
 
+   [:button
+    {:padding "0.25rem 0.5rem"
+     :border-radius "0.25rem"
+     :background-color "rgba(243,244,246,var(--gi-bg-opacity))"
+     :border "1px solid black"}]
+
    [:.font-urbanist
     {:font-family "'Urbanist', sans-serif"
      :font-weight "200"}]

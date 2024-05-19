@@ -2,7 +2,7 @@
 
 (defn layout
   [content]
-  [:div {:tw "bg-white min-h-100vh w-80vw max-w-1000px mx-auto font-sans-serif"}
+  [:div {:tw "bg-white min-h-100vh w-80vw max-w-1000px mx-auto font-sans-serif flex flex-col gap-4"}
    [:div.top-bar {:tw "flex flex-row items-center"}
     [:a {:href "/"}
      [:img {:src "/images/csaf_logo.jpg" :alt "CSAF Logo"
@@ -38,4 +38,6 @@
         [:a {:tw a-tw :href "/"} "Information"]
         [:a {:tw a-tw :href "/"} "About CSAF"]
         [:a {:tw a-tw :href "/"} "Contact Us"]])]]
-   [:div content]])
+   [:div {:tw "flex-grow"} content]
+   [:footer {:tw "self-end mx-4"}
+    [:a {:href "/members"} "Upload Results"]]])

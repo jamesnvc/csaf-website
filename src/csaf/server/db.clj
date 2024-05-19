@@ -201,6 +201,22 @@
 
   )
 
+(defn member-score-sheets
+  [member-id]
+  (jdbc/execute!
+    @datasource
+    ["select * from score_sheets where submitted_by = ?"
+     member-id]
+    jdbc/snake-kebab-opts))
+
+(defn add-new-score-sheet!
+  [member-id]
+  (jdbc/execute!
+    @datasource
+    ["insert into score_sheets (submitted_by) values (?)
+      returning *"
+     member-id]))
+
 ;;; Games queries
 
 (defn available-years-for-records
@@ -268,3 +284,11 @@
 
   (time (count (games-history {:year 2023 :classes ["lightweight" "masters"]})))
   )
+
+;;; Score sheets
+
+(defn all-games-names
+  []
+  (jdbc/execute!
+    @datasource
+    ["select id, name from games"]))

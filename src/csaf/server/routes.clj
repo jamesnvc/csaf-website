@@ -67,7 +67,7 @@
     (fn [_]
       {:status 200
        :headers {"Content-Type" "text/html; charset=utf-8"}
-       :body (->> (csaf.client.home/home-view [:h1 "Coming Soon"])
+       :body (->> (csaf.client.home/home-view)
                   layout/layout
                   page)})]
    [[:get "/athletes"]
@@ -118,4 +118,34 @@
                                  :event filter-event})})
                     layout/layout
                     page)}))]
+
+   [[:post "/api/checkauth"]
+    (fn [req]
+      (if (get-in req [:session :user-id])
+        {:status 200}
+        {:status 401}))]
+
+   [[:post "/api/authenticate"]
+    (fn [req]
+      (if-let [user-id (db/authenticate-user {:login (get-in req [:body-params :username])
+                                              :password (get-in req [:body-params :password])})]
+        {:status 200
+         :session (assoc (:session req) :user-id user-id)}
+        {:status 401}))]
+
+   [[:get "/api/init-data"]
+    (fn [req]
+      (if-let [user-id (get-in req [:session :user-id])]
+        {:status 200
+         :body {:sheets (db/member-score-sheets user-id)
+                :members (db/all-members)
+                :games (db/all-games-names)}}
+        {:status 403}))]
+
+   [[:post "/api/score-sheets/new"]
+    (fn [req]
+      (if-let [user-id (get-in req [:session :user-id])]
+        {:status 200
+         :body (db/add-new-score-sheet! user-id)}
+        {:status 403}))]
    ])
