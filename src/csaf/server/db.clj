@@ -322,6 +322,11 @@
           data = ?
       where id = ? and submitted_by = ?"
      (:score-sheets/games-id sheet)
-     (:score-sheets/games-date sheet)
+     (some-> (:score-sheets/games-date sheet)
+             (.getTime) (java.sql.Date.))
      (:score-sheets/data sheet)
      sheet-id user-id]))
+
+(comment
+  (java.sql.Date. (.getTime (java.util.Date.)))
+  )
