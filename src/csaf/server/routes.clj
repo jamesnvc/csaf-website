@@ -2,6 +2,7 @@
   (:require
    [com.rpl.specter :as x]
    [clojure.java.io :as io]
+   [clojure.data.csv :as csv]
    [clojure.string :as string]
    [bloom.omni.impl.crypto :as crypto]
    [huff2.core :as huff]
@@ -148,4 +149,10 @@
         {:status 200
          :body (db/add-new-score-sheet! user-id)}
         {:status 403}))]
+
+   [[:post "/api/csvify"]
+    (fn [req]
+      (when (get-in req [:session :user-id])
+        {:status 200
+         :body {:data (csv/read-csv (get-in req [:body-params :csv-text]))}}))]
    ])

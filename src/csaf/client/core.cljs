@@ -1,5 +1,6 @@
 (ns ^:figwheel-hooks csaf.client.core
   (:require
+   [clojure.string :as string]
    [com.rpl.specter :as x]
    [goog.object :as o]
    [reagent.core :as r]
@@ -69,13 +70,13 @@
 (defn upload-results-view
   []
   (r/with-let [_ (ajax/request {:method "get"
-                                 :uri "/api/init-data"
-                                 :on-success (fn [{:keys [sheets games members]}]
-                                               (swap! app-state
-                                                      assoc
-                                                      :score-sheets sheets
-                                                      :games games
-                                                      :members members))})
+                                :uri "/api/init-data"
+                                :on-success (fn [{:keys [sheets games members]}]
+                                              (swap! app-state
+                                                     assoc
+                                                     :score-sheets sheets
+                                                     :games games
+                                                     :members members))})
                dt-formatter (js/Intl.DateTimeFormat. js/undefined #js {:timeZone "UTC"})]
     (if (nil? (:active-sheet @app-state))
       [:div {:tw "flex flex-col"}
@@ -141,15 +142,52 @@
                                   app-state))}]]
 
          [:h3 "Results"]
-         [:label "Upload CSV"
-          [:input {:type "file"}]]
-         [:table
-          (for [row (:score-sheets/data sheet)]
+         [:label {:tw "py-1 px-2 rounded bg-gray-200 border-1px border-black"} "Upload CSV"
+          [:input {:tw "hidden"
+                   :type "file"
+                   :accept "text/csv"
+                   :multiple false
+                   :on-change (fn [e]
+                                (when-let [file (aget (.. e -target -files) 0)]
+                                  (.. file text
+                                      (then
+                                        (fn [csv]
+                                          (ajax/request
+                                            {:method "post"
+                                             :uri "/api/csvify"
+                                             :params {:csv-text csv}
+                                             :credentials? true
+                                             :on-success (fn [resp]
+                                                           (x/setval
+                                                             [x/ATOM
+                                                              :score-sheets
+                                                              x/ALL
+                                                              (x/if-path
+                                                                [:score-sheets/id (x/pred= active-sheet)]
+                                                                :score-sheets/data)]
+                                                             (->> (:data resp)
+                                                                  (x/setval
+                                                                    [x/ALL
+                                                                     #(every? string/blank? %)]
+                                                                    x/NONE))
+                                                             app-state))}))))))}]]
+         [:div {:tw "overflow-scroll"}
+          [:table
+           (when-let [headers (first (:score-sheets/data sheet))]
+             [:thead
+              [:tr
+               (for [[cidx col] (map-indexed vector headers)]
+                 ^{:key cidx}
+                 [:th col])]])
+           [:tbody
+            (for [[ridx row] (map-indexed vector (rest (:score-sheets/data sheet)))]
+              ^{:key ridx}
+              [:tr
+               (for [[cidx col] (map-indexed vector row)]
+                 ^{:key cidx}
+                 [:td col])])
             [:tr
-             [:td (pr-str row)]])
-          ]
-         [:code (pr-str sheet)]
-         ]))))
+             [:td [:button "+ Add Row"]]]]]]]))))
 
 (defn app-view
   []

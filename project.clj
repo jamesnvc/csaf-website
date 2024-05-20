@@ -24,6 +24,7 @@
                  [org.postgresql/postgresql "42.2.10"]
 
                  [crypto-password "0.3.0"]
+                 [org.clojure/data.csv "1.1.0"]
                  ]
 
   :repl-options {:init-ns csaf.core}
