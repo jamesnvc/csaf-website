@@ -1,7 +1,7 @@
 (ns csaf.client.layout)
 
 (defn layout
-  [content]
+  [content logged-in-user]
   [:div {:tw "bg-white min-h-100vh w-80vw max-w-1000px mx-auto font-sans-serif flex flex-col gap-4"}
    [:div.top-bar {:tw "flex flex-row items-center"}
     [:a {:href "/"}
@@ -39,5 +39,10 @@
         [:a {:tw a-tw :href "/"} "About CSAF"]
         [:a {:tw a-tw :href "/"} "Contact Us"]])]]
    [:div {:tw "flex-grow"} content]
-   [:footer {:tw "self-end mx-4"}
-    [:a {:href "/members"} "Upload Results"]]])
+   [:footer {:tw "self-end mx-4 flex flex-row gap-3 items-center"}
+    [:a {:href "/members"} "Upload Results"]
+    (when logged-in-user
+      [:<>
+       [:span "Logged in as " (:members/login logged-in-user)]
+       [:form {:method :post :action "/api/logout"}
+        [:button "Log Out"]]])]])

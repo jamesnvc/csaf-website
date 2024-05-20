@@ -62,23 +62,29 @@
 (def class-names
   #{"juniors" "lightweight" "amateurs" "open" "masters" "womens" "womensmaster"})
 
+(defn logged-in-user
+  [req]
+  (some-> (get-in req [:session :user-id])
+          (db/member)))
+
 (def routes
   [
    [[:get "/"]
-    (fn [_]
+    (fn [req]
       {:status 200
        :headers {"Content-Type" "text/html; charset=utf-8"}
-       :body (->> (csaf.client.home/home-view)
-                  layout/layout
-                  page)})]
+       :body (-> (csaf.client.home/home-view)
+                 (layout/layout (logged-in-user req))
+                 page)})]
+
    [[:get "/athletes"]
-    (fn [_]
+    (fn [req]
       {:status 200
        :headers {"Content-Type" "text/html; charset=utf-8"}
-       :body (->> (db/all-members)
-                  athletes/all-athletes-view
-                  layout/layout
-                  page)})
+       :body (-> (db/all-members)
+                 athletes/all-athletes-view
+                 (layout/layout (logged-in-user req))
+                 page)})
     []]
 
    [[:get "/athletes/:id"]
@@ -86,18 +92,18 @@
       (if-let [athlete-id (->int (get-in req [:params :id]))]
         {:status 200
          :headers {"Content-Type" "text/html; charset=utf-8"}
-         :body (->> (-> (db/member athlete-id)
-                        ;; TODO: use datafy/nav to do this?
-                        (assoc :member/game-results (db/member-game-results athlete-id)
-                               :member/prs (db/member-pr-results athlete-id)))
-                    athletes/athlete-view
-                    layout/layout
-                    page)}
+         :body (-> (db/member athlete-id)
+                   ;; TODO: use datafy/nav to do this?
+                   (assoc :member/game-results (db/member-game-results athlete-id)
+                          :member/prs (db/member-pr-results athlete-id))
+                   athletes/athlete-view
+                   (layout/layout (logged-in-user req))
+                   page)}
         {:status 404}))
     []]
 
    [[:get "/games"]
-    (fn [{{:strs [filter-year class filter-event]} :query-params}]
+    (fn [{{:strs [filter-year class filter-event]} :query-params :as req}]
       (let [avail-years (db/available-years-for-records)
             filter-year (or (->int filter-year)
                             (:year (first avail-years)))
@@ -108,16 +114,16 @@
                          seq)]
         {:status 200
          :headers {"Content-Type" "text/html; charset=utf-8"}
-         :body (->> (games/games-history-view
-                      {:available-years avail-years
-                       :selected {"filter-year" (str filter-year)
-                                  "class" classes
-                                  "filter-event" filter-event}
-                       :games (db/games-history
-                                {:year filter-year
-                                 :classes classes
-                                 :event filter-event})})
-                    layout/layout
+         :body (-> (games/games-history-view
+                     {:available-years avail-years
+                      :selected {"filter-year" (str filter-year)
+                                 "class" classes
+                                 "filter-event" filter-event}
+                      :games (db/games-history
+                               {:year filter-year
+                                :classes classes
+                                :event filter-event})})
+                    (layout/layout (logged-in-user req))
                     page)}))]
 
    [[:post "/api/checkauth"]
@@ -134,11 +140,18 @@
          :session (assoc (:session req) :user-id user-id)}
         {:status 401}))]
 
+   [[:post "/api/logout"]
+    (fn [req]
+      {:status 302
+       :headers {"Location" "/"}
+       :session (dissoc (req :session) :user-id)})]
+
    [[:get "/api/init-data"]
     (fn [req]
       (if-let [user-id (get-in req [:session :user-id])]
         {:status 200
          :body {:sheets (db/member-score-sheets user-id)
+                :logged-in-user (logged-in-user req)
                 :members (db/all-members)
                 :games (db/all-games-names)}}
         {:status 403}))]
