@@ -26,15 +26,21 @@
 
 (defn fetch-init-data!
   []
-  (ajax/request {:method "get"
-                 :uri "/api/init-data"
-                 :on-success (fn [{:keys [sheets games members logged-in-user]}]
-                               (swap! app-state
-                                      assoc
-                                      :score-sheets sheets
-                                      :games games
-                                      :members members
-                                      :logged-in-user logged-in-user))}))
+  (ajax/request
+    {:method "get"
+     :uri "/api/init-data"
+     :on-success
+     (fn [{:keys [sheets games members logged-in-user]}]
+       (swap! app-state
+              assoc
+              :score-sheets (into {}
+                                  (map (fn [sheet]
+                                         [(:score-sheets/id sheet)
+                                          sheet]))
+                                  sheets)
+              :games games
+              :members members
+              :logged-in-user logged-in-user))}))
 
 (defn login-view
   []
@@ -76,7 +82,7 @@
                    (swap! app-state
                           (fn [s]
                             (-> s
-                                (update :score-sheets (fnil conj []) new-sheet)
+                                (update :score-sheets assoc (:score-sheets/id new-sheet) new-sheet)
                                 (assoc :active-sheet
                                        (:score-sheets/id new-sheet))))))}))
 
@@ -86,7 +92,8 @@
    [:h2 "Score Sheets"]
    [:ul
     (doall
-      (for [{:score-sheets/keys [id created-at]} (:score-sheets @app-state)]
+      (for [{:score-sheets/keys [id created-at]} (->> (vals (:score-sheets @app-state))
+                                                      (sort-by :score-sheets/created-at))]
         ^{:key id}
         [:li [:a {:href (str "/members/sheet/" id)
                   :on-click (fn [e]
@@ -103,28 +110,57 @@
    [:button {:on-click (fn [] (add-sheet!))}
     "Add Sheet"]])
 
+(defn field-view
+  [opts]
+  (r/with-let [editing? (r/atom false)]
+    (if @editing?
+      [:input.field {:default-value (:value opts)
+               :auto-focus true
+               :on-blur (fn [e]
+                          (x/setval (:path opts) (.. e -target -value) app-state)
+                          (reset! editing? false))}]
+      [:div.field {:on-click (fn [_] (reset! editing? true))}
+       (:value opts)
+       "\u00a0"])))
+
+(defn save-sheet!
+  [sheet on-success]
+  (swap! app-state assoc ::saving? true)
+  (ajax/request {:method :post
+                 :uri (str "/api/score-sheets/" (:score-sheets/id sheet))
+                 :params {:sheet sheet}
+                 :credentials? true
+                 :on-success (fn [_] (swap! app-state assoc ::saving? false)
+                               (on-success))
+                 :on-error (fn [err] (js/console.error "ERROR SAVING SHEET" err))}))
+
 (defn sheet-view
   []
-  (r/with-let [dt-formatter (js/Intl.DateTimeFormat. js/undefined #js {:timeZone "UTC"})]
+  (r/with-let [dt-formatter (js/Intl.DateTimeFormat. js/undefined #js {:timeZone "UTC"})
+               last-saved (r/atom nil)]
     (let [active-sheet (:active-sheet @app-state)
-          sheet (x/select-one
-                  [x/ALL #(= active-sheet (:score-sheets/id %))]
-                  (:score-sheets @app-state))]
-      [:div {:tw "flex flex-col"}
+          sheet (get-in @app-state [:score-sheets active-sheet])]
+      (when (nil? @last-saved) (reset! last-saved sheet))
+      [:div {:tw "flex flex-col gap-3"}
        [:a {:href "/members" :on-click (fn [e] (.preventDefault e)
                                          (swap! app-state assoc :active-sheet nil))}
         "All Sheets"]
        [:h2 "Score Sheet"]
+       (cond
+         (::saving? @app-state) [:span "Saving..."]
+         (= @last-saved sheet) [:span "Changes saved"]
+         :else [:span "Unsaved Changes"])
+       [:button {:on-click
+                 (fn [] (save-sheet! sheet #(reset! last-saved sheet)))}
+        "Save Changes"]
        [:label "Game"
         [:select {:value (str (:score-sheets/games-id sheet))
                   :on-change (fn [e]
                                (x/setval
                                  [x/ATOM
                                   :score-sheets
-                                  x/ALL
-                                  (x/if-path
-                                    [:score-sheets/id (x/pred= active-sheet)]
-                                    :score-sheets/games-id)]
+                                  (x/keypath active-sheet)
+                                  :score-sheets/games-id]
                                  (js/parseInt (.. e -target -value) 10)
                                  app-state))}
          [:option {:value ""} "None selected"]
@@ -141,10 +177,8 @@
                               (x/setval
                                 [x/ATOM
                                  :score-sheets
-                                 x/ALL
-                                 (x/if-path
-                                   [:score-sheets/id (x/pred= active-sheet)]
-                                   :score-sheets/games-date)]
+                                 (x/keypath active-sheet)
+                                 :score-sheets/games-date]
                                 (js/Date. (.. e -target -value))
                                 app-state))}]]
 
@@ -168,33 +202,51 @@
                                                          (x/setval
                                                            [x/ATOM
                                                             :score-sheets
-                                                            x/ALL
-                                                            (x/if-path
-                                                              [:score-sheets/id (x/pred= active-sheet)]
-                                                              :score-sheets/data)]
-                                                           (->> (:data resp)
+                                                            (x/keypath active-sheet)
+                                                            :score-sheets/data]
+                                                           (->> (vec (:data resp))
                                                                 (x/setval
                                                                   [x/ALL
                                                                    #(every? string/blank? %)]
                                                                   x/NONE))
                                                            app-state))}))))))}]]
-       [:div {:tw "overflow-scroll"}
-        [:table
-         (when-let [headers (first (:score-sheets/data sheet))]
-           [:thead
+       (let [partial-path [x/ATOM :score-sheets (x/keypath active-sheet)
+                           :score-sheets/data]]
+         [:div {:tw "overflow-scroll"}
+          [:table
+           (when-let [headers (first (:score-sheets/data sheet))]
+             [:thead
+              [:tr
+               [:th ]
+               (for [[cidx col] (map-indexed vector headers)]
+                 ^{:key cidx}
+                 [:th [field-view {:value col
+                                   :path (conj partial-path (x/nthpath 0)
+                                               (x/nthpath cidx))}]])]])
+           [:tbody
+            (for [[ridx row] (rest (map-indexed vector (:score-sheets/data sheet)))]
+              ^{:key ridx}
+              [:tr
+               [:td [:button {:on-click (fn [_]
+                                          (when (js/confirm "Delete this row?")
+                                            (x/setval
+                                              (conj partial-path (x/nthpath ridx))
+                                              x/NONE
+                                              app-state)))}
+                     "-"]]
+               (for [[cidx col] (map-indexed vector row)]
+                 ^{:key cidx}
+                 [:td [field-view {:value col
+                                   :path (conj partial-path (x/nthpath ridx)
+                                               (x/nthpath cidx))}]])])
             [:tr
-             (for [[cidx col] (map-indexed vector headers)]
-               ^{:key cidx}
-               [:th col])]])
-         [:tbody
-          (for [[ridx row] (map-indexed vector (rest (:score-sheets/data sheet)))]
-            ^{:key ridx}
-            [:tr
-             (for [[cidx col] (map-indexed vector row)]
-               ^{:key cidx}
-               [:td col])])
-          [:tr
-           [:td [:button "+ Add Row"]]]]]]])))
+             [:td
+              [:button {:on-click (fn []
+                                    (x/setval
+                                      (conj partial-path x/AFTER-ELEM)
+                                      (vec (repeat (count (first (:score-sheets/data sheet))) ""))
+                                      app-state))}
+               " + "]]]]]])])))
 
 (defn upload-results-view
   []

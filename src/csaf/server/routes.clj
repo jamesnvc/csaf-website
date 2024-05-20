@@ -163,6 +163,18 @@
          :body (db/add-new-score-sheet! user-id)}
         {:status 403}))]
 
+   [[:post "/api/score-sheets/:id"]
+    (fn [req]
+      (if-let [user-id (get-in req [:session :user-id])]
+        (if-let [sheet-id (->int (get-in req [:params :id]))]
+          {:status 200
+           :body (db/update-sheet-for-user
+                   {:sheet-id sheet-id
+                    :user-id user-id
+                    :sheet (get-in req [:body-params :sheet])})}
+          {:status 400})
+        {:status 403}))]
+
    [[:post "/api/csvify"]
     (fn [req]
       (when (get-in req [:session :user-id])

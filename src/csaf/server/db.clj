@@ -3,6 +3,7 @@
    [clojure.java.io :as io]
    [com.rpl.specter :as x]
    [next.jdbc :as jdbc]
+   [next.jdbc.prepare :as jdbc.prepare]
    [next.jdbc.result-set :as jdbc.rs]
    [hikari-cp.core :as hikari]
    [csaf.config :as config]
@@ -10,12 +11,21 @@
    [camel-snake-kebab.core :refer [->kebab-case]]
    [crypto.password.bcrypt :as bcrypt])
   (:import
-   (org.postgresql.util PGobject)))
+   (org.postgresql.util PGobject)
+   (java.sql PreparedStatement)))
 
 ;;; Configuration
 
 (def mapper (json/object-mapper {:decode-key-fn keyword}))
+(def ->json json/write-value-as-string)
 (def <-json #(json/read-value % mapper))
+
+(defn ->pgobject
+  [x]
+  (let [pgtype (or (:pgtype (meta x)) "jsonb")]
+    (doto (PGobject.)
+      (.setType pgtype)
+      (.setValue (->json x)))))
 
 (defn <-pgobject
   [^org.postgresql.util.PGobject v]
@@ -25,6 +35,15 @@
       (when value
         (with-meta (<-json value) {:pgtype type}))
       value)))
+
+(extend-protocol jdbc.prepare/SettableParameter
+  clojure.lang.IPersistentMap
+  (set-parameter [m ^PreparedStatement s i]
+    (.setObject s i (->pgobject m)))
+
+  clojure.lang.IPersistentVector
+  (set-parameter [v ^PreparedStatement s i]
+    (.setObject s i (->pgobject v))))
 
 (extend-protocol jdbc.rs/ReadableColumn
   org.postgresql.util.PGobject
@@ -292,3 +311,17 @@
   (jdbc/execute!
     @datasource
     ["select id, name from games"]))
+
+(defn update-sheet-for-user
+  [{:keys [user-id sheet-id sheet]}]
+  (jdbc/execute!
+    @datasource
+    ["update score_sheets
+      set games_id = ?,
+          games_date = ?,
+          data = ?
+      where id = ? and submitted_by = ?"
+     (:score-sheets/games-id sheet)
+     (:score-sheets/games-date sheet)
+     (:score-sheets/data sheet)
+     sheet-id user-id]))
