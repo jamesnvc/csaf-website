@@ -139,7 +139,11 @@
   (r/with-let [dt-formatter (js/Intl.DateTimeFormat. js/undefined #js {:timeZone "UTC"})
                last-saved (r/atom nil)]
     (let [active-sheet (:active-sheet @app-state)
-          sheet (get-in @app-state [:score-sheets active-sheet])]
+          sheet (get-in @app-state [:score-sheets active-sheet])
+          member-names (into #{}
+                             (map (fn [{:members/keys [first-name last-name]}]
+                                    (str last-name ", " first-name)))
+                             (@app-state :members)) ]
       (when (nil? @last-saved) (reset! last-saved sheet))
       [:div {:tw "flex flex-col gap-3"}
        [:a {:href "/members" :on-click (fn [e] (.preventDefault e)
@@ -211,9 +215,18 @@
                                                                   x/NONE))
                                                            app-state))}))))))}]]
        (let [partial-path [x/ATOM :score-sheets (x/keypath active-sheet)
-                           :score-sheets/data]]
+                           :score-sheets/data]
+             name-idx (x/select-first
+                        [:score-sheets/data x/FIRST
+                         x/INDEXED-VALS
+                         (x/if-path [x/LAST
+                                     (x/view string/trim)
+                                     (x/view string/lower-case)
+                                     (x/pred= "name")]
+                                    x/FIRST)]
+                        sheet)]
          [:div {:tw "overflow-scroll"}
-          [:table
+          [:table.results-upload-sheet
            (when-let [headers (first (:score-sheets/data sheet))]
              [:thead
               [:tr
@@ -236,9 +249,13 @@
                      "-"]]
                (for [[cidx col] (map-indexed vector row)]
                  ^{:key cidx}
-                 [:td [field-view {:value col
-                                   :path (conj partial-path (x/nthpath ridx)
-                                               (x/nthpath cidx))}]])])
+                 [:td {:class (when (= cidx name-idx)
+                                (if (contains? member-names col)
+                                  "valid-member"
+                                  "missing-member"))}
+                  [field-view {:value col
+                               :path (conj partial-path (x/nthpath ridx)
+                                           (x/nthpath cidx))}]])])
             [:tr
              [:td
               [:button {:on-click (fn []
