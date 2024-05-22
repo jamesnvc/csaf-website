@@ -304,13 +304,19 @@
   (time (count (games-history {:year 2023 :classes ["lightweight" "masters"]})))
   )
 
+(defn add-new-game!
+  [game-name]
+  (jdbc/execute-one!
+    @datasource
+    ["insert into games (name) values (?) returning *" game-name]))
+
 ;;; Score sheets
 
 (defn all-games-names
   []
   (jdbc/execute!
     @datasource
-    ["select id, name from games"]))
+    ["select id, name from games order by name"]))
 
 (defn update-sheet-for-user
   [{:keys [user-id sheet-id sheet]}]

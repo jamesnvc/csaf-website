@@ -157,21 +157,54 @@
        [:button {:on-click
                  (fn [] (save-sheet! sheet #(reset! last-saved sheet)))}
         "Save Changes"]
-       [:label "Game"
-        [:select {:value (str (:score-sheets/games-id sheet))
-                  :on-change (fn [e]
-                               (x/setval
-                                 [x/ATOM
-                                  :score-sheets
-                                  (x/keypath active-sheet)
-                                  :score-sheets/games-id]
-                                 (js/parseInt (.. e -target -value) 10)
-                                 app-state))}
-         [:option {:value ""} "None selected"]
-         (for [game (:games @app-state)]
-           ^{:key (:games/id game)}
-           [:option {:value (str (:games/id game))}
-            (:games/name game)])]]
+       (r/with-let [new-game-name (r/atom nil)]
+         [:<>
+          [:label "Game"
+            [:select {:value (if (some? @new-game-name)
+                               "new-game"
+                               (str (:score-sheets/games-id sheet)))
+                      :on-change (fn [e]
+                                   (if (= "new-game" (.. e -target -value))
+                                     (reset! new-game-name "")
+                                     (x/setval
+                                       [x/ATOM
+                                        :score-sheets
+                                        (x/keypath active-sheet)
+                                        :score-sheets/games-id]
+                                       (js/parseInt (.. e -target -value) 10)
+                                       app-state)))}
+             [:option {:value ""} "None selected"]
+             [:option {:value "new-game"} "New Games"]
+             (for [game (:games @app-state)]
+               ^{:key (:games/id game)}
+               [:option {:value (str (:games/id game))}
+                (:games/name game)])]]
+          (when (some? @new-game-name)
+            [:form {:on-submit
+                    (fn [e]
+                      (.preventDefault e)
+                      (ajax/request {:method :post
+                                     :uri "/api/games/new"
+                                     :params {:game-name @new-game-name}
+                                     :on-success (fn [{:keys [new-game]}]
+                                                   (swap! app-state
+                                                          update :games
+                                                          conj new-game)
+                                                   (swap! app-state update :games
+                                                          (fn [gs] (sort-by :games/name gs)))
+                                                   (swap! app-state
+                                                          assoc-in
+                                                          [:score-sheets
+                                                           active-sheet
+                                                           :score-sheets/games-id]
+                                                          (:games/id new-game))
+                                                   (reset! new-game-name nil))}))}
+             [:input {:placeholder "Game Name"
+                     :value @new-game-name
+                     :on-change (fn [e]
+                                  (->> (.. e -target -value)
+                                       (reset! new-game-name)))}]
+             [:button {:disabled (string/blank? @new-game-name)} "Create"]])])
        [:label "Game Date"
         [:input {:type "date" :name "date"
                  :value (or (some->> (:score-sheets/games-date sheet)

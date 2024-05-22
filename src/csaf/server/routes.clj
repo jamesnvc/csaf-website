@@ -175,6 +175,16 @@
           {:status 400})
         {:status 403}))]
 
+   [[:post "/api/games/new"]
+    (fn [req]
+      (if (some? (logged-in-user req))
+        (let [game-name (get-in req [:body-params :game-name])]
+          (if (not (string/blank? game-name))
+            {:status 200
+             :body {:new-game (db/add-new-game! game-name)}}
+            {:status 400}))
+        {:status 403}))]
+
    [[:post "/api/csvify"]
     (fn [req]
       (when (get-in req [:session :user-id])
