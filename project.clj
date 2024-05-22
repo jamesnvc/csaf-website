@@ -32,4 +32,8 @@
 
   :main csaf.core
   :plugins [[io.bloomventures/omni "0.32.3"]]
-  :omni-config csaf.core/config)
+  :omni-config csaf.core/config
+
+  :profiles {:uberjar {:aot :all
+                       :prep-tasks [["omni" "compile"]
+                                    "compile"]}})
