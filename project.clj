@@ -7,6 +7,7 @@
                  [org.clojure/clojurescript "1.11.60"]
 
                  [io.github.escherize/huff "0.2.12"]
+                 [girouette/girouette "0.0.11-SNAPSHOT"]
                  [org.slf4j/slf4j-api "1.7.36"]
                  [org.clojure/data.xml "0.2.0-alpha6"]
                  [com.fasterxml.jackson.core/jackson-core "2.11.0"]
