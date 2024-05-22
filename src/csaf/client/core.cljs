@@ -113,7 +113,7 @@
 (defn field-view
   [opts]
   (r/with-let [editing? (r/atom false)]
-    (if @editing?
+    (if (and @editing? (not (:read-only opts)))
       [:input.field {:default-value (:value opts)
                :auto-focus true
                :on-blur (fn [e]
@@ -140,6 +140,7 @@
                last-saved (r/atom nil)]
     (let [active-sheet (:active-sheet @app-state)
           sheet (get-in @app-state [:score-sheets active-sheet])
+          editable? (= "pending" (:score-sheets/status sheet)) ; TODO: or current user is admin
           member-names (into #{}
                              (map (fn [{:members/keys [first-name last-name]}]
                                     (str last-name ", " first-name)))
@@ -150,19 +151,22 @@
                                          (swap! app-state assoc :active-sheet nil))}
         "All Sheets"]
        [:h2 "Score Sheet"]
-       (cond
-         (::saving? @app-state) [:span "Saving..."]
-         (= @last-saved sheet) [:span "Changes saved"]
-         :else [:span "Unsaved Changes"])
-       [:button {:on-click
-                 (fn [] (save-sheet! sheet #(reset! last-saved sheet)))}
-        "Save Changes"]
+       (when editable?
+         [:div
+          [:button {:on-click
+                    (fn [] (save-sheet! sheet #(reset! last-saved sheet)))}
+           "Save Changes"]
+          (cond
+            (::saving? @app-state) [:span "Saving..."]
+            (= @last-saved sheet) [:span "Changes saved"]
+            :else [:span "Unsaved Changes"])])
        (r/with-let [new-game-name (r/atom nil)]
          [:<>
           [:label "Game"
             [:select {:value (if (some? @new-game-name)
                                "new-game"
                                (str (:score-sheets/games-id sheet)))
+                      :disabled (not editable?)
                       :on-change (fn [e]
                                    (if (= "new-game" (.. e -target -value))
                                      (reset! new-game-name "")
@@ -200,16 +204,17 @@
                                                           (:games/id new-game))
                                                    (reset! new-game-name nil))}))}
              [:input {:placeholder "Game Name"
-                     :value @new-game-name
-                     :on-change (fn [e]
-                                  (->> (.. e -target -value)
-                                       (reset! new-game-name)))}]
+                      :value @new-game-name
+                      :on-change (fn [e]
+                                   (->> (.. e -target -value)
+                                        (reset! new-game-name)))}]
              [:button {:disabled (string/blank? @new-game-name)} "Create"]])])
        [:label "Game Date"
         [:input {:type "date" :name "date"
                  :value (or (some->> (:score-sheets/games-date sheet)
                                      (.format dt-formatter))
                             "")
+                 :read-only (not editable?)
                  :on-change (fn [e]
                               (x/setval
                                 [x/ATOM
@@ -220,33 +225,34 @@
                                 app-state))}]]
 
        [:h3 "Results"]
-       [:label {:tw "py-1 px-2 rounded bg-gray-200 border-1px border-black"} "Upload CSV"
-        [:input {:tw "hidden"
-                 :type "file"
-                 :accept "text/csv"
-                 :multiple false
-                 :on-change (fn [e]
-                              (when-let [file (aget (.. e -target -files) 0)]
-                                (.. file text
-                                    (then
-                                      (fn [csv]
-                                        (ajax/request
-                                          {:method "post"
-                                           :uri "/api/csvify"
-                                           :params {:csv-text csv}
-                                           :credentials? true
-                                           :on-success (fn [resp]
-                                                         (x/setval
-                                                           [x/ATOM
-                                                            :score-sheets
-                                                            (x/keypath active-sheet)
-                                                            :score-sheets/data]
-                                                           (->> (vec (:data resp))
-                                                                (x/setval
-                                                                  [x/ALL
-                                                                   #(every? string/blank? %)]
-                                                                  x/NONE))
-                                                           app-state))}))))))}]]
+       (when editable?
+         [:label {:tw "py-1 px-2 rounded bg-gray-200 border-1px border-black"} "Upload CSV"
+          [:input {:tw "hidden"
+                   :type "file"
+                   :accept "text/csv"
+                   :multiple false
+                   :on-change (fn [e]
+                                (when-let [file (aget (.. e -target -files) 0)]
+                                  (.. file text
+                                      (then
+                                        (fn [csv]
+                                          (ajax/request
+                                            {:method "post"
+                                             :uri "/api/csvify"
+                                             :params {:csv-text csv}
+                                             :credentials? true
+                                             :on-success (fn [resp]
+                                                           (x/setval
+                                                             [x/ATOM
+                                                              :score-sheets
+                                                              (x/keypath active-sheet)
+                                                              :score-sheets/data]
+                                                             (->> (vec (:data resp))
+                                                                  (x/setval
+                                                                    [x/ALL
+                                                                     #(every? string/blank? %)]
+                                                                    x/NONE))
+                                                             app-state))}))))))}]])
        (let [partial-path [x/ATOM :score-sheets (x/keypath active-sheet)
                            :score-sheets/data]
              name-idx (x/select-first
@@ -259,27 +265,31 @@
                                     x/FIRST)]
                         sheet)]
          [:div {:tw "overflow-scroll"}
+          (when editable?
+            [:p "Click on a cell to edit the contents"])
           [:table.results-upload-sheet
            (when-let [headers (first (:score-sheets/data sheet))]
              [:thead
               [:tr
-               [:th ]
+               (when editable? [:th ])
                (for [[cidx col] (map-indexed vector headers)]
                  ^{:key cidx}
                  [:th [field-view {:value col
+                                   :read-only (not editable?)
                                    :path (conj partial-path (x/nthpath 0)
                                                (x/nthpath cidx))}]])]])
            [:tbody
             (for [[ridx row] (rest (map-indexed vector (:score-sheets/data sheet)))]
               ^{:key ridx}
               [:tr
-               [:td [:button {:on-click (fn [_]
-                                          (when (js/confirm "Delete this row?")
-                                            (x/setval
-                                              (conj partial-path (x/nthpath ridx))
-                                              x/NONE
-                                              app-state)))}
-                     "-"]]
+               (when editable?
+                 [:td [:button {:on-click (fn [_]
+                                            (when (js/confirm "Delete this row?")
+                                              (x/setval
+                                                (conj partial-path (x/nthpath ridx))
+                                                x/NONE
+                                                app-state)))}
+                       "-"]])
                (for [[cidx col] (map-indexed vector row)]
                  ^{:key cidx}
                  [:td {:class (when (= cidx name-idx)
@@ -287,20 +297,47 @@
                                   "valid-member"
                                   "missing-member"))}
                   [field-view {:value col
+                               :read-only (not editable?)
                                :path (conj partial-path (x/nthpath ridx)
                                            (x/nthpath cidx))}]])])
-            [:tr
-             [:td
-              [:button {:on-click (fn []
-                                    (x/setval
-                                      (conj partial-path x/AFTER-ELEM)
-                                      (vec (repeat (count (first (:score-sheets/data sheet))) ""))
-                                      app-state))}
-               " + "]]]]]])])))
+            (when editable?
+              [:tr
+               [:td
+                [:button {:on-click (fn []
+                                      (x/setval
+                                        (conj partial-path x/AFTER-ELEM)
+                                        (vec (repeat (count (first (:score-sheets/data sheet))) ""))
+                                        app-state))}
+                 " + "]]])]]])
+
+
+       [:div.submit
+
+        (case (:score-sheets/status sheet)
+          "pending"
+          [:button {:on-click (fn []
+                                (when (js/confirm "Submit these results for approval? You won't be able to edit them anymore.")
+                                  (ajax/request {:method :post
+                                                 :uri (str "/api/score-sheets/"
+                                                           (:score-sheets/id sheet)
+                                                           "/submit")
+                                                 :credentials? true
+                                                 :on-success (fn [_]
+                                                               (swap! app-state
+                                                                      assoc-in
+                                                                      [:score-sheets
+                                                                       active-sheet
+                                                                       :score-sheets/status]
+                                                                      "complete"))})))}
+           "Submit results" ]
+          "complete"
+          [:span "Awaiting admin approval"]
+          "approved"
+          [:span "Results approved & in the database"])]])))
 
 (defn upload-results-view
   []
-  (if (nil? (:active-sheet @app-state))
+  (if (or (nil? (:active-sheet @app-state)) (nil? (:score-sheets @app-state)))
     [select-sheet-view]
     [sheet-view]))
 

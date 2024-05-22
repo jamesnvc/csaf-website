@@ -336,3 +336,12 @@
 (comment
   (java.sql.Date. (.getTime (java.util.Date.)))
   )
+
+(defn submit-sheet-for-approval
+  [{:keys [sheet-id user-id]}]
+  (jdbc/execute!
+    @datasource
+    ["update score_sheets
+      set status = 'complete'
+      where id = ? and submitted_by = ? and status = 'pending'"
+     sheet-id user-id]))

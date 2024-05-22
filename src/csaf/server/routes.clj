@@ -175,6 +175,17 @@
           {:status 400})
         {:status 403}))]
 
+   [[:post "/api/score-sheets/:id/submit"]
+    (fn [req]
+      (if-let [user-id (get-in req [:session :user-id])]
+        (if-let [sheet-id (->int (get-in req [:params :id]))]
+          {:status 200
+           :body (db/submit-sheet-for-approval
+                   {:sheet-id sheet-id
+                    :user-id user-id})}
+          {:status 400})
+        {:status 403}))]
+
    [[:post "/api/games/new"]
     (fn [req]
       (if (some? (logged-in-user req))
