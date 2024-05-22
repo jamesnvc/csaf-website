@@ -6,7 +6,8 @@
    [reagent.core :as r]
    [bloom.commons.ajax :as ajax]
    [bloom.omni.reagent :as omni.reagent]
-   [csaf.client.layout :as layout]))
+   [csaf.client.layout :as layout]
+   [csaf.client.styles :as styles]))
 
 (enable-console-print!)
 
@@ -134,6 +135,7 @@
                :auto-focus true
                :on-blur (fn [e]
                           (x/setval (:path opts) (.. e -target -value) app-state)
+                          ((:save-changes! opts))
                           (reset! editing? false))}]
       [:div.field {:on-click (fn [_] (reset! editing? true))}
        (:value opts)
@@ -153,32 +155,34 @@
 (defn sheet-view
   []
   (r/with-let [dt-formatter (js/Intl.DateTimeFormat. js/undefined #js {:timeZone "UTC"})
-               last-saved (r/atom nil)]
+               last-saved (r/atom nil)
+               save-changes! (fn []
+                               (let [sheet (get-in @app-state
+                                                   [:score-sheets (:active-sheet @app-state)])]
+                                 (save-sheet! sheet #(reset! last-saved sheet))))]
     (let [active-sheet (:active-sheet @app-state)
           sheet (get-in @app-state [:score-sheets active-sheet])
           editable? (= "pending" (:score-sheets/status sheet)) ; TODO: or current user is admin
           member-names (into #{}
                              (map (fn [{:members/keys [first-name last-name]}]
                                     (str last-name ", " first-name)))
-                             (@app-state :members)) ]
+                             (@app-state :members))]
       (when (nil? @last-saved) (reset! last-saved sheet))
       [:div {:tw "flex flex-col gap-3"}
        [:a {:href "/members" :on-click (fn [e] (.preventDefault e)
-                                         (swap! app-state assoc :active-sheet nil))}
-        "All Sheets"]
-       [:h2 "Score Sheet"]
+                                         (swap! app-state assoc :active-sheet nil))
+            :tw styles/a-tw}
+        "Back to All Sheets"]
+       [:h2 {:tw "text-lg"} "Score Sheet"]
        (when editable?
          [:div
-          [:button {:on-click
-                    (fn [] (save-sheet! sheet #(reset! last-saved sheet)))}
-           "Save Changes"]
           (cond
             (::saving? @app-state) [:span "Saving..."]
             (= @last-saved sheet) [:span "Changes saved"]
             :else [:span "Unsaved Changes"])])
        (r/with-let [new-game-name (r/atom nil)]
          [:<>
-          [:label "Game"
+          [:label [:span {:tw "font-bold"} "Game: "]
             [:select {:value (if (some? @new-game-name)
                                "new-game"
                                (str (:score-sheets/games-id sheet)))
@@ -186,13 +190,14 @@
                       :on-change (fn [e]
                                    (if (= "new-game" (.. e -target -value))
                                      (reset! new-game-name "")
-                                     (x/setval
-                                       [x/ATOM
-                                        :score-sheets
-                                        (x/keypath active-sheet)
-                                        :score-sheets/games-id]
-                                       (js/parseInt (.. e -target -value) 10)
-                                       app-state)))}
+                                     (do (x/setval
+                                           [x/ATOM
+                                            :score-sheets
+                                            (x/keypath active-sheet)
+                                            :score-sheets/games-id]
+                                           (js/parseInt (.. e -target -value) 10)
+                                           app-state)
+                                         (save-changes!))))}
              [:option {:value ""} "None selected"]
              [:option {:value "new-game"} "New Games"]
              (for [game (:games @app-state)]
@@ -218,14 +223,15 @@
                                                            active-sheet
                                                            :score-sheets/games-id]
                                                           (:games/id new-game))
-                                                   (reset! new-game-name nil))}))}
+                                                   (reset! new-game-name nil)
+                                                   (save-changes!))}))}
              [:input {:placeholder "Game Name"
                       :value @new-game-name
                       :on-change (fn [e]
                                    (->> (.. e -target -value)
                                         (reset! new-game-name)))}]
              [:button {:disabled (string/blank? @new-game-name)} "Create"]])])
-       [:label "Game Date"
+       [:label [:span {:tw "font-bold"} "Game Date: "]
         [:input {:type "date" :name "date"
                  :value (or (some->> (:score-sheets/games-date sheet)
                                      (.format dt-formatter))
@@ -238,9 +244,10 @@
                                  (x/keypath active-sheet)
                                  :score-sheets/games-date]
                                 (js/Date. (.. e -target -value))
-                                app-state))}]]
+                                app-state)
+                              (save-changes!))}]]
 
-       [:h3 "Results"]
+       [:h3 {:tw "font-bold"} "Results"]
        (when editable?
          [:label {:tw "py-1 px-2 rounded bg-gray-200 border-1px border-black"} "Upload CSV"
           [:input {:tw "hidden"
@@ -268,7 +275,8 @@
                                                                     [x/ALL
                                                                      #(every? string/blank? %)]
                                                                     x/NONE))
-                                                             app-state))}))))))}]])
+                                                             app-state)
+                                                           (save-changes!))}))))))}]])
        (let [partial-path [x/ATOM :score-sheets (x/keypath active-sheet)
                            :score-sheets/data]
              name-idx (x/select-first
@@ -281,7 +289,7 @@
                                     x/FIRST)]
                         sheet)]
          [:div {:tw "overflow-scroll"}
-          (when editable?
+          (when (and editable? (seq (:score-sheets/data sheet)))
             [:p "Click on a cell to edit the contents"])
           [:table.results-upload-sheet
            (when-let [headers (first (:score-sheets/data sheet))]
@@ -293,7 +301,8 @@
                  [:th [field-view {:value col
                                    :read-only (not editable?)
                                    :path (conj partial-path (x/nthpath 0)
-                                               (x/nthpath cidx))}]])]])
+                                               (x/nthpath cidx))
+                                   :save-changes! save-changes!}]])]])
            [:tbody
             (for [[ridx row] (rest (map-indexed vector (:score-sheets/data sheet)))]
               ^{:key ridx}
@@ -304,7 +313,8 @@
                                               (x/setval
                                                 (conj partial-path (x/nthpath ridx))
                                                 x/NONE
-                                                app-state)))}
+                                                app-state)
+                                              (save-changes!)))}
                        "-"]])
                (for [[cidx col] (map-indexed vector row)]
                  ^{:key cidx}
@@ -315,15 +325,17 @@
                   [field-view {:value col
                                :read-only (not editable?)
                                :path (conj partial-path (x/nthpath ridx)
-                                           (x/nthpath cidx))}]])])
-            (when editable?
+                                           (x/nthpath cidx))
+                               :save-changes! save-changes!}]])])
+            (when (and editable? (seq (:score-sheets/data sheet)))
               [:tr
                [:td
                 [:button {:on-click (fn []
                                       (x/setval
                                         (conj partial-path x/AFTER-ELEM)
                                         (vec (repeat (count (first (:score-sheets/data sheet))) ""))
-                                        app-state))}
+                                        app-state)
+                                      (save-changes!))}
                  " + "]]])]]])
 
 
@@ -339,12 +351,13 @@
                                                            "/submit")
                                                  :credentials? true
                                                  :on-success (fn [_]
-                                                               (swap! app-state
-                                                                      assoc-in
-                                                                      [:score-sheets
-                                                                       active-sheet
-                                                                       :score-sheets/status]
-                                                                      "complete"))})))}
+                                                               (swap!
+                                                                 app-state
+                                                                 assoc-in
+                                                                 [:score-sheets
+                                                                  active-sheet
+                                                                  :score-sheets/status]
+                                                                 "complete"))})))}
            "Submit results" ]
           "complete"
           [:span "Awaiting admin approval"]
@@ -371,7 +384,7 @@
   []
   [layout/layout
    [:div
-    [:h1 "Members Area"]
+    [:h1 {:tw "text-xl"} "Members Area"]
     (if (not (:logged-in? @app-state))
       [login-view]
       [upload-results-view])]
