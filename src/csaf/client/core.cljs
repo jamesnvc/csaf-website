@@ -92,8 +92,9 @@
    [:h2 "Score Sheets"]
    [:ul
     (doall
-      (for [{:score-sheets/keys [id created-at]} (->> (vals (:score-sheets @app-state))
-                                                      (sort-by :score-sheets/created-at))]
+      (for [{:score-sheets/keys [id created-at games-id games-date]}
+            (->> (vals (:score-sheets @app-state))
+                 (sort-by :score-sheets/created-at))]
         ^{:key id}
         [:li [:a {:href (str "/members/sheet/" id)
                   :on-click (fn [e]
@@ -104,11 +105,20 @@
                                           (str "/members/sheet/" id))
                               (swap! app-state assoc :active-sheet
                                      id))}
-              [:span "Game ???" ]
+              (if games-id
+                (let [game-name (x/select-first
+                                  [x/ATOM :games x/ALL
+                                   (x/if-path [:games/id (x/pred= games-id)]
+                                              :games/name)]
+                             app-state)]
+                  [:span game-name
+                   (when games-date (str " @ " (.toLocaleDateString games-date)))])
+                "New Results Sheet")
               " "
-              [:span "Created " (.toLocaleDateString created-at)]]]))]
+              [:span {:tw "text-sm text-gray-400"}
+               "Created " (.toLocaleDateString created-at)]]]))]
    [:button {:on-click (fn [] (add-sheet!))}
-    "Add Sheet"]])
+    "Add Games Results"]])
 
 (defn field-view
   [opts]
@@ -333,13 +343,23 @@
           "complete"
           [:span "Awaiting admin approval"]
           "approved"
-          [:span "Results approved & in the database"])]])))
+          [:span "Results approved & in the database"]
+          nil "")]])))
 
 (defn upload-results-view
   []
-  (if (or (nil? (:active-sheet @app-state)) (nil? (:score-sheets @app-state)))
-    [select-sheet-view]
-    [sheet-view]))
+  (r/with-let [back-listener (fn [_]
+                               (let [path js/window.location.pathname]
+                                 (if (= path"/members")
+                                   (swap! app-state assoc :active-sheet nil)
+                                   (when-let [[_ sheet-id] (re-matches #"^/members/sheet/(\d+)$" path)]
+                                     (swap! app-state assoc :active-sheet (js/parseInt sheet-id 10))))))
+               _ (.addEventListener js/window "popstate" back-listener)]
+    (if (or (nil? (:active-sheet @app-state)) (nil? (:score-sheets @app-state)))
+      [select-sheet-view]
+      [sheet-view])
+    (finally
+      (.removeEventListener js/window "popstate" back-listener))))
 
 (defn app-view
   []
