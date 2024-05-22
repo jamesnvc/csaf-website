@@ -85,7 +85,10 @@
                             (-> s
                                 (update :score-sheets assoc (:score-sheets/id new-sheet) new-sheet)
                                 (assoc :active-sheet
-                                       (:score-sheets/id new-sheet))))))}))
+                                       (:score-sheets/id new-sheet)))))
+                   (.pushState js/history
+                               nil ""
+                               (str "/members/sheet/" (:score-sheets/id new-sheet))))}))
 
 (defn select-sheet-view
   []

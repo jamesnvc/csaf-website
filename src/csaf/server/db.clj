@@ -230,11 +230,12 @@
 
 (defn add-new-score-sheet!
   [member-id]
-  (jdbc/execute!
+  (jdbc/execute-one!
     @datasource
     ["insert into score_sheets (submitted_by) values (?)
       returning *"
-     member-id]))
+     member-id]
+    jdbc/snake-kebab-opts))
 
 ;;; Games queries
 
@@ -308,7 +309,8 @@
   [game-name]
   (jdbc/execute-one!
     @datasource
-    ["insert into games (name) values (?) returning *" game-name]))
+    ["insert into games (name) values (?) returning *" game-name]
+    jdbc/snake-kebab-opts))
 
 ;;; Score sheets
 
@@ -316,7 +318,8 @@
   []
   (jdbc/execute!
     @datasource
-    ["select id, name from games order by name"]))
+    ["select id, name from games order by name"]
+    jdbc/snake-kebab-opts))
 
 (defn update-sheet-for-user
   [{:keys [user-id sheet-id sheet]}]
