@@ -92,7 +92,7 @@
    [:h2 "Score Sheets"]
    [:ul
     (doall
-      (for [{:score-sheets/keys [id created-at games-id games-date]}
+      (for [{:score-sheets/keys [id created-at games-id games-date status]}
             (->> (vals (:score-sheets @app-state))
                  (sort-by :score-sheets/created-at))]
         ^{:key id}
@@ -116,7 +116,13 @@
                 "New Results Sheet")
               " "
               [:span {:tw "text-sm text-gray-400"}
-               "Created " (.toLocaleDateString created-at)]]]))]
+               "Created " (.toLocaleDateString created-at)]
+              " "
+              [:span {:tw "text-sm"}
+               (case status
+                 "pending" "In Progress"
+                 "complete" "Awaiting Approval"
+                 "approved" "Approved")]]]))]
    [:button {:on-click (fn [] (add-sheet!))}
     "Add Games Results"]])
 
