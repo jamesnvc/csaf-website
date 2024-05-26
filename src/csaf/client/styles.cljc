@@ -40,7 +40,9 @@
     {:background-image "url(/images/celtic_knot_bg.jpg)"}]
 
    [:table
+    [:thead [:tr {:background-color "white"}]]
     [:tbody
+     [:tr {:background-color "white"}]
      ["tr:nth-child(odd)" {:background-color "rgba(243,244,246,var(--gi-bg-opacity))"} ]]]
 
    [:table.results-upload-sheet
