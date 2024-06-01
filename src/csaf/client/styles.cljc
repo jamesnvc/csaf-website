@@ -57,6 +57,9 @@
      :background-color "rgba(243,244,246,var(--gi-bg-opacity))"
      :border "1px solid black"}]
 
+   [:dl.expected-format
+    [:dt {:font-weight "bold"}]]
+
    [:.font-urbanist
     {:font-family "'Urbanist', sans-serif"
      :font-weight "200"}]

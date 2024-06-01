@@ -5,7 +5,8 @@
    [com.rpl.specter :as x]
    [reagent.core :as r]
    [csaf.client.styles :as styles]
-   [csaf.client.state :refer [app-state]]))
+   [csaf.client.state :refer [app-state]]
+   [csaf.client.results :as results]))
 
 (defn add-sheet!
   []
@@ -184,6 +185,38 @@
                               (save-changes!))}]]
 
        [:h3 {:tw "font-bold"} "Results"]
+       [:details
+        [:summary "Click to show expected columns for spreadsheet"]
+        [:div {:tw "text-sm"}
+         [:p "In no particular order:"]
+         [:dl.expected-format {:tw "ml-4"}
+          [:dt "Name"]
+          [:dd "Athlete's name, as \"Last, First\""]
+          [:dt "Country"]
+          [:dd "Athlete's Country"]
+          [:dt "Class"]
+          [:dd "One of "
+           [:ul {:tw "list-disc ml-4"}
+            [:li "Juniors"]
+            [:li "Lightweight"]
+            [:li "Amateurs" ]
+            [:li "Open"]
+            [:li "Masters"]
+            [:li "Womens"]
+            [:li "Womensmaster"]]]
+          [:dt "\"Event code\", e.g. WOB, BRAE"]
+          [:dd "The distance for the event in the format feet'inches\" (e.g. 42'2\"), "
+           "or clock score for caber in the format hour:minutes (e.g. 11:30). Codes are:"
+           [:ul {:tw "list-disc ml-4"}
+            (for [event results/events-in-order
+                  :let [code (results/abbrev-event-name event)]]
+              ^{:key code}
+              [:li code])]]
+          [:dt "\"Event code\"_weight, e.g. BRAE_weight"]
+          [:dd "The weight of the implement in pounds"]
+          [:dt "CABR_length"]
+          [:dd "The length of the caber like feet'inches\", e.g. 19'9\""]]]]
+
        (when editable?
          [:label {:tw "py-1 px-2 rounded bg-gray-200 border-1px border-black"} "Upload CSV"
           [:input {:tw "hidden"
