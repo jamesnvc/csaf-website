@@ -139,6 +139,13 @@
     )
   )
 
+(defn member-roles
+  [member-id]
+  (jdbc/execute!
+    @datasource
+    ["select \"role\" from members_roles where \"member_id\" = ?"
+     member-id]))
+
 (defn member-game-results
   [member-id]
   (->> (jdbc/execute!
@@ -171,6 +178,7 @@
 
 (defn member-pr-results
   [member-id]
+  ;; TODO: switch to plan/transduce
   (->> (jdbc/execute!
          @datasource
          ["with prs as (select distinct on (event)
@@ -219,23 +227,6 @@
       (get "caber") :game-instances/date class)
 
   )
-
-(defn member-score-sheets
-  [member-id]
-  (jdbc/execute!
-    @datasource
-    ["select * from score_sheets where submitted_by = ?"
-     member-id]
-    jdbc/snake-kebab-opts))
-
-(defn add-new-score-sheet!
-  [member-id]
-  (jdbc/execute-one!
-    @datasource
-    ["insert into score_sheets (submitted_by) values (?)
-      returning *"
-     member-id]
-    jdbc/snake-kebab-opts))
 
 ;;; Games queries
 
@@ -319,6 +310,23 @@
   (jdbc/execute!
     @datasource
     ["select id, name from games order by name"]
+    jdbc/snake-kebab-opts))
+
+(defn member-score-sheets
+  [member-id]
+  (jdbc/execute!
+    @datasource
+    ["select * from score_sheets where submitted_by = ?"
+     member-id]
+    jdbc/snake-kebab-opts))
+
+(defn add-new-score-sheet!
+  [member-id]
+  (jdbc/execute-one!
+    @datasource
+    ["insert into score_sheets (submitted_by) values (?)
+      returning *"
+     member-id]
     jdbc/snake-kebab-opts))
 
 (defn update-sheet-for-user
