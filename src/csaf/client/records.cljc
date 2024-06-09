@@ -23,7 +23,8 @@
         [:th "Comment"]]
        [:tbody
         (for [event results/events-in-order
-              :let [record (get class-records event)]
+              :let [event-records (get class-records event)]
+              record event-records
               :when (some? record)]
           [:tr
            [:td (results/display-event-name event)]

@@ -363,7 +363,7 @@
   []
   (->> (jdbc/plan
          @datasource
-         ["select last_value(id) over wnd as id,
+         ["select distinct last_value(id) over wnd as id,
              last_value(canadian) over wnd as canadian,
              last_value(class) over wnd as class,
              last_value(event) over wnd as event,
@@ -389,5 +389,6 @@
                                :year (:year row)
                                :comment (:comment row)
                                :status (:status row)}
-                (assoc-in acc [(:class row) (:event row)])))
+                (update-in acc [(:class row) (:event row)]
+                           (fnil conj []))))
          {})))
