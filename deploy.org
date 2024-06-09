@@ -1,0 +1,68 @@
+
+#+begin_src conf :tangle /ssh:csaf-new:/home/james/csaf/csaf.service
+[Unit]
+Description=CSAF server
+After=network.target
+
+[Service]
+Type=simple
+User=james
+Group=james
+WorkingDirectory=/home/james/csaf
+ExecStart=/usr/bin/java -server -Xmx900m -Dfile.encoding=UTF8 -Dclojure.server.repl="{:port 8888 :accept clojure.core.server/repl}" -jar /home/james/csaf/csaf.jar
+Restart=always
+RestartSec=30
+TimeoutStartSec=60
+StartLimitInterval=0
+
+[Install]
+WantedBy=default.target
+#+end_src
+
+Restarter service
+
+#+begin_src conf :tangle /ssh:csaf-new:/home/james/csaf/csaf_watcher.service
+[Unit]
+Description=Restarts CSAF server on path changed
+After=network.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/systemctl restart csaf.service
+
+[Install]
+WantedBy=multi-user.target
+#+end_src
+
+Path watcher
+
+#+begin_src conf :tangle /ssh:csaf-new:/home/james/csaf/csaf_watcher.path
+[Unit]
+Wants=csaf_watcher.service
+
+[Path]
+PathChanged=/home/james/csaf/deployed
+
+[Install]
+WantedBy=multi-user.target
+#+end_src
+
+#+begin_src sh :dir /ssh:csaf-new|sudo:csaf-new:~/
+#ln -sf /home/james/csaf/csaf.service /etc/systemd/system
+ln -sf /home/james/csaf/csaf_watcher.service /etc/systemd/system
+ln -sf /home/james/csaf/csaf_watcher.path /etc/systemd/system
+#+end_src
+
+#+RESULTS:
+
+#+begin_src sh :dir /ssh:csaf-new|sudo:csaf-new:~/
+systemctl daemon-reload
+#systemctl enable csaf.service
+systemctl enable csaf_watcher.service
+systemctl enable csaf_watcher.path
+#systemctl start  csaf.service
+systemctl start  csaf_watcher.service
+systemctl start  csaf_watcher.path
+#+end_src
+
+#+RESULTS:
