@@ -67,4 +67,6 @@
    [:.font-sans-serif
     {:font-family "sans-serif"}]
 
+   [:.font-smallcaps
+    {:font-variant "small-caps"}]
    ])
