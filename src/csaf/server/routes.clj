@@ -10,6 +10,7 @@
    [csaf.client.athletes :as athletes]
    [csaf.client.games :as games]
    [csaf.client.results :as results]
+   [csaf.client.records :as records]
    [csaf.client.layout :as layout]
    [csaf.util :refer [?>]]
    [csaf.server.db :as db]))
@@ -100,6 +101,16 @@
                    (layout/layout (logged-in-user req))
                    page)}
         {:status 404}))
+    []]
+
+   [[:get "/records"]
+    (fn [req]
+      {:status 200
+       :headers {"Content-Type" "text/html; charset=utf-8"}
+       :body (-> (db/current-records)
+                 records/records-view
+                 (layout/layout (logged-in-user req))
+                 page)})
     []]
 
    [[:get "/games"]

@@ -356,3 +356,38 @@
       set status = 'complete'
       where id = ? and submitted_by = ? and status = 'pending'"
      sheet-id user-id]))
+
+;; Records
+
+(defn current-records
+  []
+  (->> (jdbc/plan
+         @datasource
+         ["select last_value(id) over wnd as id,
+             last_value(canadian) over wnd as canadian,
+             last_value(class) over wnd as class,
+             last_value(event) over wnd as event,
+             last_value(athlete_name) over wnd as athlete_name,
+             last_value(distance_inches) over wnd as distance_inches,
+             last_value(weight) over wnd as weight,
+             last_value(year) over wnd as year,
+             last_value(comment) over wnd as comment,
+             last_value(status) over wnd as status
+           from event_records where should_display
+           window wnd as (partition by class, event, weight order by year
+            rows between unbounded preceding and unbounded following)"]
+         jdbc/snake-kebab-opts)
+       (reduce
+         (fn [acc row]
+           (->> #:event-record{:id (:id row)
+                               :canadian? (:canadian row)
+                               :class (:class row)
+                               :event (:event row)
+                               :athlete-name (:athlete_name row)
+                               :distance-inches (:distance_inches row)
+                               :weight (:weight row)
+                               :year (:year row)
+                               :comment (:comment row)
+                               :status (:status row)}
+                (assoc-in acc [(:class row) (:event row)])))
+         {})))

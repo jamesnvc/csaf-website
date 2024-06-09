@@ -449,3 +449,170 @@ select distinct status from score_sheet_main
 |----------|
 | complete |
 | pending  |
+
+
+* Records
+
+
+#+begin_src sql :engine mysql :dbhost localhost :dbport 3306 :dbuser root :dbpassword foobar :database csaf_dump
+describe score_records
+#+end_src
+
+#+RESULTS:
+| Field         | Type         | Null | Key | Default           | Extra                                         |
+|---------------+--------------+------+-----+-------------------+-----------------------------------------------|
+| rno           | int          | NO   | PRI | NULL              | auto_increment                                |
+| Type          | varchar(50)  | YES  |     | NULL              |                                               |
+| Class         | varchar(30)  | YES  |     | NULL              |                                               |
+| Event         | varchar(30)  | YES  |     | NULL              |                                               |
+| Athlete       | varchar(200) | YES  |     | NULL              |                                               |
+| Distance      | float        | YES  |     | NULL              |                                               |
+| Weight        | float        | YES  |     | NULL              |                                               |
+| Year          | varchar(10)  | YES  |     | NULL              |                                               |
+| Comment       | varchar(255) | YES  |     | NULL              |                                               |
+| new_athleteid | int          | NO   |     | 0                 |                                               |
+| resultID      | int          | NO   |     | 0                 |                                               |
+| sheet_main    | int          | NO   |     | 0                 |                                               |
+| status        | varchar(20)  | NO   |     | unverified        |                                               |
+| displayFlag   | varchar(20)  | YES  |     | no                |                                               |
+| userName      | varchar(30)  | YES  |     | NULL              |                                               |
+| dateChanged   | timestamp    | YES  |     | CURRENT_TIMESTAMP | DEFAULT_GENERATED on update CURRENT_TIMESTAMP |
+
+
+#+begin_src sql :engine mysql :dbhost localhost :dbport 3306 :dbuser root :dbpassword foobar :database csaf_dump
+select
+  rno,
+  coalesce(`Type`, '') = 'Canada',
+  lower(Class),
+  case lower(Event)
+  when 'brae' then 'braemar'
+  when 'ston' then 'open'
+  when 'shf' then 'sheaf'
+  else lower(Event) end,
+  Athlete,
+  Distance,
+  Weight,
+  Year,
+  Comment,
+  status,
+  displayFlag
+from score_records
+into outfile '/Users/james/src/csaf/csaf/mysql_records_dump.csv'
+ fields terminated by ',' optionally enclosed by '"'
+ lines terminated by '\n'
+#+end_src
+
+#+RESULTS:
+|---|
+
+
+#+begin_src sql :engine postgresql :dbhost localhost :dbport 5432 :dbuser tester :dbpassword test :database csaf_dev
+begin;
+\copy event_records from '/Users/james/src/csaf/csaf/mysql_records_dump.csv' with (format csv, NULL '\N', quote '"', escape '\');
+select setval('event_records_id_seq', max(id)) from event_records;
+end;
+#+end_src
+
+#+RESULTS:
+| SET      |
+|----------|
+| BEGIN    |
+| COPY 247 |
+| setval   |
+| 8483     |
+| COMMIT   |
+
+#+begin_src sql :engine mysql :dbhost localhost :dbport 3306 :dbuser root :dbpassword foobar :database csaf_dump
+select distinct Class from score_records;
+#+end_src
+
+#+RESULTS:
+| Class       |
+|-------------|
+| Womens      |
+| Masters     |
+| Juniors     |
+| Open        |
+| Lightweight |
+
+#+begin_src sql :engine mysql :dbhost localhost :dbport 3306 :dbuser root :dbpassword foobar :database csaf_dump
+select `type`, count(*) from score_records group by `type`;
+#+end_src
+
+#+RESULTS:
+| type   | count(*) |
+|--------+----------|
+| Canada |      125 |
+| NULL   |       69 |
+|        |       53 |
+
+#+begin_src sql :engine mysql :dbhost localhost :dbport 3306 :dbuser root :dbpassword foobar :database csaf_dump
+select status, count(*) from score_records group by status;
+#+end_src
+
+#+RESULTS:
+| status     | count(*) |
+|------------+----------|
+| verified   |      157 |
+| inactive   |        7 |
+| unverified |       64 |
+| new        |       17 |
+| updated    |        2 |
+
+#+begin_src sql :engine mysql :dbhost localhost :dbport 3306 :dbuser root :dbpassword foobar :database csaf_dump
+select displayFlag, count(*) from score_records group by displayFlag;
+#+end_src
+
+#+RESULTS:
+| displayFlag | count(*) |
+|-------------+----------|
+| no          |      178 |
+| yes         |       69 |
+
+#+begin_src sql :engine mysql :dbhost localhost :dbport 3306 :dbuser root :dbpassword foobar :database csaf_dump
+select Athlete from score_records limit 10;
+#+end_src
+
+#+RESULTS:
+| Athlete            |
+|--------------------|
+| Patterson, Mikaela |
+| Trask, Warren      |
+| Harris, Andrew     |
+| Bishop, Dirk       |
+| Bishop, Dirk       |
+| Goldthorp, Joshua  |
+| Markovic, Dan      |
+| Pauletto, Nicolas  |
+| Doherty, Matt      |
+| Hadley, Greg       |
+
+#+begin_src sql :engine mysql :dbhost localhost :dbport 3306 :dbuser root :dbpassword foobar :database csaf_dump
+describe score_records_suggested
+#+end_src
+
+#+RESULTS:
+| Field       | Type         | Null | Key | Default           | Extra                                         |
+|-------------+--------------+------+-----+-------------------+-----------------------------------------------|
+| rno         | int          | NO   | PRI | NULL              | auto_increment                                |
+| type        | varchar(50)  | YES  |     | NULL              |                                               |
+| class       | varchar(30)  | YES  |     | NULL              |                                               |
+| event       | varchar(30)  | YES  |     | NULL              |                                               |
+| athlete     | varchar(200) | YES  |     | NULL              |                                               |
+| distance    | float        | YES  |     | NULL              |                                               |
+| weight      | float        | YES  |     | NULL              |                                               |
+| year        | varchar(10)  | YES  |     | NULL              |                                               |
+| status      | varchar(20)  | YES  |     | new               |                                               |
+| displayFlag | varchar(20)  | YES  |     | no                |                                               |
+| games       | varchar(200) | YES  |     | NULL              |                                               |
+| userName    | varchar(30)  | YES  |     | NULL              |                                               |
+| dateAdded   | timestamp    | YES  |     | CURRENT_TIMESTAMP | DEFAULT_GENERATED on update CURRENT_TIMESTAMP |
+
+#+begin_src sql :engine mysql :dbhost localhost :dbport 3306 :dbuser root :dbpassword foobar :database csaf_dump
+select count(*) from score_records_suggested
+#+end_src
+
+#+RESULTS:
+| count(*) |
+|----------|
+|        4 |

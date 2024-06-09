@@ -34,7 +34,7 @@
           [:li [:a {:tw a-tw :href "/"} "Games Setup"]]
           [:li [:a {:tw a-tw :href "/games"} "View Games History"]]
           [:li [:a {:tw a-tw :href "/"} "Rankings"]]
-          [:li [:a {:tw a-tw :href "/"} "Records"]]]]]
+          [:li [:a {:tw a-tw :href "/records"} "Records"]]]]]
         [:a {:tw a-tw :href "/"} "Information"]
         [:a {:tw a-tw :href "/"} "About CSAF"]
         [:a {:tw a-tw :href "/"} "Contact Us"]])]]

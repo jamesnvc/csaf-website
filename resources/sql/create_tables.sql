@@ -171,4 +171,30 @@ create table if not exists score_sheets (
   "data" jsonb
 );
 
+do $$
+  begin
+    if not exists (select 1 from pg_type where typname = 'game_record_status') then
+      create type game_record_status as enum (
+        'unverified', 'verified', 'new', 'updated', 'inactive'
+      );
+    end if;
+end$$;
+
+create table if not exists event_records (
+  "id" serial primary key,
+  "canadian" boolean not null, -- in the old db, 125 are "Canada", 69 NULL, 53 "". What does that mean?
+  "class" membership_class_code not null,
+  "event" game_event_type not null,
+  -- in the old DB, records are just athlete names, not linked to member records...
+  -- "athlete_id" integer not null references members(id),
+  "athlete_name" text not null,
+  -- No records for caber
+  "distance_inches" numeric(8,1) not null,
+  "weight" numeric(8,2) not null,
+  "year" integer not null,
+  "comment" text,
+  "status" game_record_status not null default 'unverified',
+  "should_display" boolean not null default false
+);
+
 COMMIT;
