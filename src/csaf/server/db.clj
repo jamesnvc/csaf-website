@@ -244,7 +244,9 @@
       @datasource
       (cond->
           [(str
-             "select games.name, to_char(game_instances.date, 'YYYY-MM-DD') as date,
+             "select games.id as games_id,
+         games.name,
+         to_char(game_instances.date, 'YYYY-MM-DD') as date,
          game_results_placing.placing,
          members.id, members.first_name, members.last_name,
          game_member_results.event, game_member_results.distance_inches,
@@ -270,12 +272,13 @@
     (reduce
       (fn [acc row]
         (cond-> acc
-          (not (contains? acc (:date row)))
-          (assoc (:date row) {:games/name (:name row)
-                              :results {}})
+          (not (contains? (get acc (:date row)) (:games_id row)))
+          (assoc-in [(:date row) (:games_id row)]
+                    {:games/name (:name row) :results {}})
 
-          (not (contains? (get-in acc [(:date row) :results]) (:id row)))
-          (assoc-in [(:date row) :results (:id row)]
+          (not (contains? (get-in acc [(:date row) (:games_id row) :results])
+                          (:id row)))
+          (assoc-in [(:date row) (:games_id row) :results (:id row)]
                     {:members/id (:id row)
                      :members/first-name (:first_name row)
                      :members/last-name (:last_name row)
@@ -284,7 +287,7 @@
                      :events {}})
 
           true
-          (assoc-in [(:date row) :results (:id row) :events (:event row)]
+          (assoc-in [(:date row) (:games_id row) :results (:id row) :events (:event row)]
                     {:game-member-results/event (:event row)
                      :game-member-results/class (:class row)
                      :game-member-results/clock-minutes (:clock_minutes row)

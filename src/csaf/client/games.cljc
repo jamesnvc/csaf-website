@@ -57,13 +57,14 @@
    [:div.results {:tw "flex flex-col gap-8 mx-4"}
     (if (empty? games)
       [:h4 "No Results"]
-      (for [game-date (sort #(compare %2 %1) (keys games))]
+      (for [game-date (sort #(compare %2 %1) (keys games))
+            game (vals (get games game-date))]
         [:div
-         [:h2 {:tw "text-xl"} (get-in games [game-date :games/name])]
+         [:h2 {:tw "text-xl"} (game :games/name)]
          [:h3 {:tw "text-lg text-gray-500 mx-4"}
           (str game-date)]
          [:table {:tw "w-full"}
-          (for [[class results] (->> (vals (get-in games [game-date :results]))
+          (for [[class results] (->> (vals (game :results))
                                      (group-by :game-member-results/class)
                                      (sort-by first #(compare %2 %1)))]
             [:<>
