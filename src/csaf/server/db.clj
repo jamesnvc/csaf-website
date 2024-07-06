@@ -535,6 +535,32 @@
                          (mod (float (:distance-inches best)) 12))))
            0))
 
+       (and (not= "womens" class) (= "braemar" event))
+       (let [best (x/select-first
+                    [x/ALL
+                     (x/if-path [:class (x/pred= class)] x/STAY)
+                     (x/if-path [:event (x/pred= event)] x/STAY)
+                     :distance-inches]
+                    event-records)
+             top-weight (x/select-one
+                          [x/ALL
+                           (x/if-path [:class (x/pred= class)] x/STAY)
+                           (x/if-path [:event (x/pred= event)] x/STAY)
+                           :weight]
+                          event-top-weights)
+             event-weight-limit (case class "womens" 18 22)]
+         (if (and best top-weight weight distance-inches
+                  (<= event-weight-limit weight))
+           (* 1000 (/ (+ (* 12 (+ (math/floor (/ (float distance-inches) 12))
+                                  weight
+                                  (- event-weight-limit)))
+                         (mod (float distance-inches) 12))
+                      (+ (* 12 (+ (math/floor (/ (float best) 12))
+                                  top-weight
+                                  (- event-weight-limit)))
+                         (mod (float best) 12))))
+           0))
+
        :else
        (-> (/ (float distance-inches)
               (or (some-> (x/select-first
