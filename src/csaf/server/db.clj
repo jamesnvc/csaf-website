@@ -427,7 +427,7 @@
       from event_records
       where status = 'verified'
       window wnd as (partition by class, event, weight order by
-         (case when year < ? then year else -year end) desc
+         (case when year < ? then year else -year end) desc, distance_inches desc
         rows between unbounded preceding and unbounded following)
       order by distance_inches desc"
      year]
