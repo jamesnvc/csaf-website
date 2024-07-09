@@ -3,8 +3,9 @@
    [clojure.string :as string]
    [csaf.util :refer [?>]]
    [csaf.client.styles :as styles]
-   [csaf.client.results :refer [display-clock display-distance display-weight
-                                events-in-order display-event-name]]))
+   [csaf.client.results :as results
+    :refer [display-clock display-distance display-weight
+            events-in-order display-event-name]]))
 
 (defn all-athletes-view
   [athletes]
@@ -82,15 +83,8 @@
        [:th "Date"]
        [:th "Location"]
        [:th "Place"]
-       [:th "BRE"]
-       [:th "STON"]
-       [:th "SHF"]
-       [:th "CABR"]
-       [:th "LWFD"]
-       [:th "HWFD"]
-       [:th "LWFD"]
-       [:th "HHMR"]
-       [:th "WOB"]]]
+       (for [evt events-in-order]
+         [:th (results/abbrev-event-name evt)])]]
      [:tbody
       (for [game (:member/game-results member)]
         [:tr
