@@ -463,18 +463,25 @@
     jdbc/snake-kebab-opts))
 
 (comment
-  (event-records-for-year-by-class 2023)
+  (->> (event-records-for-year-by-class 2010)
+       (x/select
+         [x/ALL
+          (x/if-path [:event (x/pred= "braemar")] x/STAY)
+          (x/if-path [:class (x/pred= "open")] x/STAY)
+          ])
+       prn)
   (event-records-for-year-by-class 1960)
   )
 
 (def event-weight-limits
-  {"open" {"open" 16
-           "amateurs" 16
-           "masters" 16
-           "juniors" 12
-           "womens" 8
-           "womensmaster" 8
-           "lightweight" 16}})
+  {"braemar" { "open" 22 "masters" 22 "amateurs" 22 "juniors" 22 "womens" 12 "womensmaster" 12 "lightweight" 22}
+   "open"    { "open" 16 "masters" 16 "amateurs" 16 "juniors" 12 "womens" 8 "womensmaster" 8 "lightweight" 16}
+   "wob"     { "open" 56 "masters" 42 "amateurs" 56 "juniors" 42 "womens" 28 "womensmaster" 21 "lightweight" 42}
+   "hwfd"    { "open" 56 "masters" 42 "amateurs" 56 "juniors" 42 "womens" 28 "womensmaster" 21 "lightweight" 42}
+   "lwfd"    { "open" 28 "masters" 28 "amateurs" 28 "juniors" 28 "womens" 14 "womensmaster" 14 "lightweight" 28}
+   "lhmr"    { "open" 16 "masters" 16 "amateurs" 16 "juniors" 16 "womens" 12 "womensmaster" 12 "lightweight" 16}
+   "hhmr"    { "open" 22 "masters" 22 "amateurs" 22 "womens" 16 "womensmaster" 16 "lightweight" 22}
+   "sheaf"   { "open" 16 "masters" 16 "amateurs" 16 "womens" 10 "womensmaster" 10 "lightweight" 16}})
 
 (defn score-for-result
   ([class {:keys [year result]}]
@@ -496,9 +503,16 @@
        0
 
        (= "caber" event)
-       (+ (* 500 (/ (float weight) 160))
-          (* 500 (/ (float distance-inches) 258))
-          (- (/ (abs (float clock-minutes)) 2)))
+       (max
+         0
+         (+ (* 500 (/ (float weight) 160))
+            (* 500 (/ (float distance-inches) 258))
+            (* -1/2 (+ (* 16 (math/floor (/ (float clock-minutes) 60)))
+                       (mod (float clock-minutes) 60)))))
+
+       #_#_(and weight (< (float weight)
+                      (get-in event-weight-limits [event class] ##Inf)))
+       0
 
        (and (= "open" class) (= "open" event))
        (let [light-best (x/select-first
@@ -589,6 +603,10 @@
            (max 0))))))
 
 (comment
+  (let [clock-minutes (+ (* 60 3) 12)]
+    (+ (* 16 (math/floor (/ (float clock-minutes) 60)))
+       (mod (float clock-minutes) 60)))
+
   (jdbc/execute!
     @datasource
     ["select * from game_member_results where event = 'caber' and score <> 0 limit 1"]
