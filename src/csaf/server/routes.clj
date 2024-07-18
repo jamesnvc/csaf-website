@@ -9,6 +9,7 @@
    [csaf.client.home]
    [csaf.client.athletes :as athletes]
    [csaf.client.games :as games]
+   [csaf.client.rankings :as rankings]
    [csaf.client.results :as results]
    [csaf.client.records :as records]
    [csaf.client.layout :as layout]
@@ -136,6 +137,27 @@
                                 :event filter-event})})
                     (layout/layout (logged-in-user req))
                     page)}))]
+
+   [[:get "/rankings"]
+    (fn [req]
+      {:status 200
+       :headers {"Content-Type" "text/html; charset=utf-8"}
+       :body (-> (rankings/rankings-view
+                   {:rankings-by-class
+                    (db/rankings-for-year (+ 1900 (.getYear (java.util.Date.))))})
+                 (layout/layout (logged-in-user req))
+                 page)})]
+
+   [[:get "/rankings/:year"]
+    (fn [req]
+      {:status 200
+       :headers {"Content-Type" "text/html; charset=utf-8"}
+       :body (let [year (->int (get-in req [:params :year]))]
+               (-> (rankings/rankings-view
+                     {:rankings-by-class (db/rankings-for-year year)
+                      :year year})
+                   (layout/layout (logged-in-user req))
+                   page))})]
 
    [[:post "/api/checkauth"]
     (fn [req]
