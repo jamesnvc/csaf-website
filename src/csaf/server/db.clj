@@ -676,14 +676,10 @@
              class-weight-limit (get-in event-weight-limits [event class])]
          (if (and best top-weight class-weight-limit)
            ;; this formula is bizarre, but shrug
-           (* 1000 (/ (+ (* 12 (+ (math/floor (/ (float distance-inches) 12))
-                                  (float weight)
-                                  (- class-weight-limit)))
-                         (mod (float distance-inches) 12))
-                      (+ (* 12 (+ (math/floor (/ (float (:distance-inches best)) 12))
-                                  (float top-weight)
-                                  (- class-weight-limit)))
-                         (mod (float (:distance-inches best)) 12))))
+           (* 1000 (/ (+ (* 12 (- (float weight) class-weight-limit))
+                         (float distance-inches))
+                      (+ (* 12 (- (float top-weight) class-weight-limit))
+                         (float (:distance-inches best)))))
            0))
 
        (and (not= "womens" class) (= "braemar" event))
@@ -702,14 +698,10 @@
              event-weight-limit (case class "womens" 18 22)]
          (if (and best top-weight weight distance-inches
                   (<= event-weight-limit weight))
-           (* 1000 (/ (+ (* 12 (+ (math/floor (/ (float distance-inches) 12))
-                                  weight
-                                  (- event-weight-limit)))
-                         (mod (float distance-inches) 12))
-                      (+ (* 12 (+ (math/floor (/ (float best) 12))
-                                  top-weight
-                                  (- event-weight-limit)))
-                         (mod (float best) 12))))
+           (* 1000 (/ (+ (* 12 (- weight event-weight-limit))
+                         (float distance-inches))
+                      (+ (* 12 (- top-weight event-weight-limit))
+                         (float best))))
            0))
 
        :else
