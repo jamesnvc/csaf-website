@@ -3,56 +3,62 @@
    [clojure.string :as string]
    [csaf.client.results :as results]))
 
+(defn games-history-filter-view
+  [selected available-years]
+  [:div.filters {:tw "mx-8"}
+   [:h1 "Filter By"]
+   [:form {:method "get" :action "/games"
+           :tw "flex flex-col gap-3"}
+    [:fieldset
+     [:legend "Year"]
+     [:div {:tw "flex flex-row flex-wrap gap-4"}
+      ;; Should we allow having no year? So much data...
+      #_[:label [:input {:type "radio" :name "filter-year"
+                         :value "false" :checked (not (get selected "filter-year"))}]
+         "All"]
+      (for [{:keys [year]} available-years]
+        [:label
+         [:input {:type "radio" :name "filter-year" :value (str year)
+                  :checked (= (get selected "filter-year") (str year))}]
+         (str year)])]]
+
+    [:fieldset [:legend "Class"]
+     [:div {:tw "flex flex-row flax-wrap gap-4"}
+      (for [class ["juniors" "lightweight" "amateurs" "open" "masters" "womens"
+                   "womensmaster"]]
+        [:label
+         [:input {:type "checkbox" :name "class"
+                  :value class :checked (contains? (set (get selected "class"))
+                                                   class)
+                  :tw "mr-1"}]
+         (if (= class "womensmaster")
+           "Women's Masters"
+           (string/capitalize class))])]]
+
+    [:fieldset [:legend "Event Type"]
+     [:div {:tw "flex flex-row flex-wrap gap-4"}
+      [:label
+       [:input {:type "radio" :name "filter-event"
+                :value "false" :checked (not (get selected "filter-event"))
+                :tw "mr-1"}]
+       "All"]
+      (for [event-name results/events-in-order]
+        [:label
+         [:input {:type "radio" :name "filter-event"
+                  :value event-name :checked (= (get selected "filter-event")
+                                                event-name)
+                  :tw "mr-1"}]
+         (results/display-event-name event-name)])]]
+
+    [:button "Filter"]]])
+
+
 (defn games-history-view
   [{:keys [available-years selected games]}]
   [:div {:tw "flex flex-col gap-4"}
    [:h1 "COMPETITION HISTORY"]
-   [:div.filters {:tw "mx-8"}
-    [:h1 "Filter By"]
-    [:form {:method "get" :action "/games"
-            :tw "flex flex-col gap-3"}
-     [:fieldset
-      [:legend "Year"]
-      [:div {:tw "flex flex-row flex-wrap gap-4"}
-       ;; Should we allow having no year? So much data...
-       #_[:label [:input {:type "radio" :name "filter-year"
-                          :value "false" :checked (not (get selected "filter-year"))}]
-          "All"]
-       (for [{:keys [year]} available-years]
-         [:label
-          [:input {:type "radio" :name "filter-year" :value (str year)
-                   :checked (= (get selected "filter-year") (str year))}]
-          (str year)])]]
 
-     [:fieldset [:legend "Class"]
-      [:div {:tw "flex flex-row flax-wrap gap-4"}
-       (for [class ["juniors" "lightweight" "amateurs" "open" "masters" "womens"
-                    "womensmaster"]]
-         [:label
-          [:input {:type "checkbox" :name "class"
-                   :value class :checked (contains? (set (get selected "class"))
-                                                    class)
-                   :tw "mr-1"}]
-          (if (= class "womensmaster")
-            "Women's Masters"
-            (string/capitalize class))])]]
-
-     [:fieldset [:legend "Event Type"]
-      [:div {:tw "flex flex-row flex-wrap gap-4"}
-       [:label
-        [:input {:type "radio" :name "filter-event"
-                 :value "false" :checked (not (get selected "filter-event"))
-                 :tw "mr-1"}]
-        "All"]
-       (for [event-name results/events-in-order]
-         [:label
-          [:input {:type "radio" :name "filter-event"
-                   :value event-name :checked (= (get selected "filter-event")
-                                                 event-name)
-                   :tw "mr-1"}]
-          (results/display-event-name event-name)])]]
-
-     [:button "Filter"]]]
+   [games-history-filter-view selected available-years]
 
    [:div.results {:tw "flex flex-col gap-8 mx-4"}
     (if (empty? games)
