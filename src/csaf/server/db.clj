@@ -793,9 +793,7 @@
                             {:distance-inches (:distance_inches row)
                              :weight (:weight row)
                              :clock-minutes (:clock_minutes row)
-                             :score (:score row)})
-                  (update-in [cls (:member_id row) :score]
-                             (fnil + 0) (:score row))))))]
+                             :score (:score row)})))))]
     (->>
       (jdbc/plan
         @datasource
@@ -841,8 +839,7 @@
      join game_instances on game_member_results.game_instance = game_instances.id
      where (extract(\"year\" from members.birth_date + '40 years'::interval) = ? or
             extract(\"year\" from members.master_first_date) = ?)
-       and game_instances.date >= coalesce(members.birth_date + '40 years'::interval,
-                                           members.master_first_date)
+       and extract(\"year\" from game_instances.date) = ?
        and members.country = any(ARRAY['Canada', ''])
        and members.status = 'active'
        and game_member_results.event <> 'sheaf'
@@ -851,7 +848,7 @@
        and game_member_results.class = 'open'
      window wnd as (partition by game_member_results.member_id, game_member_results.event
         order by score rows between unbounded preceding and unbounded following))"
-         year year year year year])
+         year year year year year year])
       (reduce
         (fn [acc row]
           (let [cls (:class row)
@@ -890,7 +887,14 @@
                                           :distance-inches (:distance_inches row)
                                           :clock-minutes (:clock_minutes row)}
                     bests weights))))))
-        {}))))
+        {})
+      (x/transform
+        [x/MAP-VALS
+         x/MAP-VALS
+         (x/collect :events x/MAP-VALS :score)
+         :score]
+        (fn [scores _]
+          (apply + scores))))))
 
 (comment
 
@@ -898,6 +902,7 @@
     [(x/keypath "masters" 12)
      ]
     (rankings-for-year 2023))
+
   (supplemental-results-for-masters 12)
   (get-in (rankings-for-year 2023)
           ["open" 958])
