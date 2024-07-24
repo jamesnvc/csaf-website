@@ -1,5 +1,6 @@
 (ns csaf.client.results
   (:require
+   [clojure.string :as string]
    [csaf.util :refer [?>]]))
 
 (defn float= [x y]
@@ -58,3 +59,75 @@
 
 (def classes-in-order
   ["open" "masters" "lightweight" "juniors" "womens" "womensmasters" "amateurs"])
+
+(defn ->int
+  [s]
+  #?(:cljs (js/parseInt s 10)
+     :clj (Long. s)))
+
+(defn ->float
+  [s]
+  #?(:cljs (js/parseFloat s)
+     :clj (Float. s)))
+
+(def class-names
+  {"juniors" "juniors"
+   "junior" "juniors"
+   "lightweight" "lightweight"
+   "amateurs" "amateurs"
+   "amateur" "amateurs"
+   "open" "open"
+   "masters" "masters"
+   "master" "masters"
+   "womens" "womens"
+   "women" "womens"
+   "womensmaster" "womensmaster"
+   "womensmasters" "womensmaster"
+   "womenmasters" "womensmaster"
+   "womenmaster" "womensmaster"})
+
+(defn nan?
+  [x]
+  #?(:cljs (js/isNaN x)
+     :clj (Double/isNaN x)))
+
+(defn parse-clock-minutes
+  [s]
+  (let [[_ hrs mins] (re-matches #"(\d+):(\d{2})" s)]
+    (+ (* 60 (->int hrs)) (->int mins))))
+
+(defn parse-distance
+  [s]
+  (if (re-matches #"\d+" s)
+    (->float s)
+    (let [[_ ft ins] (re-matches #"(\d+)'(?:(\d+(?:[.]\d+)?)?\")?" s)
+          d (+ (* 12 (->int ft))
+               (or (some-> ins (->float)) 0))]
+      d)))
+
+(defn result-row->game-results
+  [headers row]
+  (let [row-keys (zipmap (map string/lower-case headers) row)
+        base {:name (get row-keys "name")
+              :placing (->int (get row-keys "placing"))
+              ;; TODO validate class
+              :class (class-names (string/lower-case (get row-keys "class")))}
+        abbrev->name (into {}
+                           (map (fn [[k v]] [(string/lower-case v) k]))
+                           abbrev-event-name)]
+    (->> (reduce
+           (fn [res evt]
+             (if (and (get row-keys evt)
+                      (get row-keys (str evt "_weight"))
+                      (not= 0 (->float (get row-keys (str evt "_weight")))))
+               (assoc-in res [:events (abbrev->name evt)]
+                         (cond-> {:weight (->float (get row-keys (str evt "_weight")))}
+                           (= evt "cabr")
+                           (-> (assoc :clock-minutes (parse-clock-minutes (get row-keys evt)))
+                               (assoc :distance-inches
+                                      (parse-distance (get row-keys "cabr_length"))))
+                           (not= evt "cabr")
+                           (assoc :distance-inches (parse-distance (get row-keys evt)))))
+               res))
+           base
+           (map string/lower-case (vals abbrev-event-name))))))

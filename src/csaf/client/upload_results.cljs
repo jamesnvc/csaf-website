@@ -288,9 +288,10 @@
                (for [[cidx col] (map-indexed vector row)]
                  ^{:key cidx}
                  [:td {:class (when (= cidx name-idx)
-                                (if (contains? member-names col)
+                                ["sticky left-0"
+                                 (if (contains? member-names col)
                                   "valid-member"
-                                  "missing-member"))}
+                                  "missing-member")])}
                   [field-view {:value col
                                :read-only (not editable?)
                                :path (conj partial-path (x/nthpath ridx)
@@ -307,6 +308,54 @@
                                       (save-changes!))}
                  " + "]]])]]])
 
+
+       [:div.preview
+        [:h3 {:tw "ml-4 font-bold"} "Preview"]
+        [:table
+         (let [headers (first (:score-sheets/data sheet))
+               results (->> (rest (:score-sheets/data sheet))
+                            (map (fn [row] (results/result-row->game-results
+                                           headers row)))
+                            (group-by :class))]
+           (doall
+             (for [[class class-results] results]
+               ^{:key class}
+               [:<>
+                [:thead
+                [:tr
+                 [:th {:tw "font-normal text-sm text-gray-500"}
+                  [string/capitalize class]]]
+                [:tr [:th ""]
+                 [:th "Name"] [:th "Place"]
+                 (for [event-name results/events-in-order]
+                   [:th (results/abbrev-event-name event-name)])]]
+                [:tbody
+                 (for [result (->> class-results (sort-by :placing))]
+                   [:tr
+                    [:td {:tw "bg-white"}]
+                    [:td (:name result)]
+                    [:td (:placing result)]
+                    (for [event-name results/events-in-order
+                          :let [{:keys [distance-inches clock-minutes weight] :as res}
+                                (get-in result [:events event-name])]]
+                      [:td
+                       (if (or (nil? weight) (nil? distance-inches)
+                               (and (zero? weight) (zero? distance-inches)))
+                         "N/A"
+                         (case event-name
+                           "caber"
+                           [:<>
+                            (results/display-clock clock-minutes)
+                            " "
+                            (results/display-distance distance-inches)
+                            [:br]
+                            (results/display-weight weight)]
+                           ("braemar" "open" "sheaf")
+                           [:<>
+                            (results/display-distance distance-inches)
+                            [:br]
+                            (results/display-weight weight)]
+                           (results/display-distance distance-inches)))])])]])))]]
 
        [:div.submit
 
