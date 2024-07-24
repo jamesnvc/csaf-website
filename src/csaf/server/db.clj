@@ -626,8 +626,13 @@
          0
          (+ (* 500 (/ (float weight) 160))
             (* 500 (/ (float distance-inches) 258))
-            (* -1/2 (+ (* 16 (math/floor (/ (float clock-minutes) 60)))
-                       (mod (float clock-minutes) 60)))))
+            (* -1/2
+               ;; to make this loop around, so 11:30 = 1:30
+               ;; surely a better way of expressing this...
+               (let [mins (mod (float clock-minutes) (* 12 60))]
+                 (if (< mins (* 6 60))
+                   mins
+                   (- (* 12 60) mins))))))
 
        (and weight (< (float weight)
                       (get-in event-weight-limits [event class] ##Inf)))
