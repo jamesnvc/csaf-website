@@ -5,3 +5,8 @@
    (if (pred x) (then-f x) x))
   ([x pred then-f else-f]
    (if (pred x) (then-f x) (else-f x))))
+
+(defn nan?
+  [x]
+  #?(:cljs (js/isNaN x)
+     :clj (Double/isNaN x)))

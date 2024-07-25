@@ -86,11 +86,6 @@
    "womenmasters" "womensmaster"
    "womenmaster" "womensmaster"})
 
-(defn nan?
-  [x]
-  #?(:cljs (js/isNaN x)
-     :clj (Double/isNaN x)))
-
 (defn parse-clock-minutes
   [s]
   (let [[_ hrs mins] (re-matches #"(\d+):(\d{2})" s)]
