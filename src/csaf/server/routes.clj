@@ -182,11 +182,15 @@
    [[:get "/api/init-data"]
     (fn [req]
       (if-let [user-id (get-in req [:session :user-id])]
-        {:status 200
-         :body {:sheets (db/member-score-sheets user-id)
-                :logged-in-user (logged-in-user req)
-                :members (db/all-members)
-                :games (db/all-games-names)}}
+        (let [user (logged-in-user req)]
+          {:status 200
+           :body (cond-> {:sheets (db/member-score-sheets user-id)
+                          :logged-in-user user
+                          :members (db/all-members)
+                          :games (db/all-games-names)}
+                   (= "admin" (:members/site-code user))
+                   (assoc :submitted-sheets
+                          (db/submitted-score-sheets)))})
         {:status 403}))]
 
    [[:post "/api/score-sheets/new"]

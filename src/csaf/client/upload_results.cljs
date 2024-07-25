@@ -6,7 +6,8 @@
    [reagent.core :as r]
    [csaf.client.styles :as styles]
    [csaf.client.state :refer [app-state]]
-   [csaf.client.results :as results]))
+   [csaf.client.results :as results]
+   [csaf.util :refer [nan?]]))
 
 (defn add-sheet!
   []
@@ -18,16 +19,62 @@
                           (fn [s]
                             (-> s
                                 (update :score-sheets assoc (:score-sheets/id new-sheet) new-sheet)
-                                (assoc :active-sheet
-                                       (:score-sheets/id new-sheet)))))
+                                (assoc :active-sheet (:score-sheets/id new-sheet)
+                                       :admin-view false))))
                    (.pushState js/history
                                nil ""
                                (str "/members/sheet/" (:score-sheets/id new-sheet))))}))
+
+(defn admin-view
+  []
+  [:div.admin
+   [:h1 "Admin"]
+   (when (seq (:submitted-sheets @app-state))
+     [:<>
+      [:h2 "Submitted, Pending Approval"]
+      [:ul
+       (doall
+         (for [{:score-sheets/keys [id created-at games-id games-date status]}
+               (->> (:submitted-sheets @app-state)
+                    vals
+                    (sort-by :score-sheets/created-at))]
+           ^{:key id}
+           [:li [:a {:href (str "/members/sheet/" id)
+                     :on-click (fn [e]
+                                 (.preventDefault e)
+                                 (.stopPropagation e)
+                                 (.pushState js/history
+                                             nil ""
+                                             (str "/members/sheet/" id "/admin"))
+                                 (swap! app-state assoc :active-sheet id
+                                        :admin-view true))}
+                 (if games-id
+                   (let [game-name (x/select-first
+                                     [x/ATOM :games x/ALL
+                                      (x/if-path [:games/id (x/pred= games-id)]
+                                                 :games/name)]
+                                     app-state)]
+                     [:span game-name
+                      (when games-date (str " @ " (.toLocaleDateString games-date)))])
+                   "New Results Sheet")
+                 " "
+                 [:span {:tw "text-sm text-gray-400"}
+                  "Created " (.toLocaleDateString created-at)]
+                 " "
+                 [:span {:tw "text-sm"}
+                  (case status
+                    "pending" "In Progress"
+                    "complete" "Awaiting Approval"
+                    "approved" "Approved")]]]))]])])
 
 (defn select-sheet-view
   []
   [:div {:tw "flex flex-col"}
    [:h2 "Score Sheets"]
+
+   (when (= "admin" (:members/site-code (:logged-in-user @app-state)))
+     [admin-view])
+
    [:ul
     (doall
       (for [{:score-sheets/keys [id created-at games-id games-date status]}
@@ -41,14 +88,14 @@
                               (.pushState js/history
                                           nil ""
                                           (str "/members/sheet/" id))
-                              (swap! app-state assoc :active-sheet
-                                     id))}
+                              (swap! app-state assoc :active-sheet id
+                                     :admin-view false))}
               (if games-id
                 (let [game-name (x/select-first
                                   [x/ATOM :games x/ALL
                                    (x/if-path [:games/id (x/pred= games-id)]
                                               :games/name)]
-                             app-state)]
+                                  app-state)]
                   [:span game-name
                    (when games-date (str " @ " (.toLocaleDateString games-date)))])
                 "New Results Sheet")
@@ -69,11 +116,11 @@
   (r/with-let [editing? (r/atom false)]
     (if (and @editing? (not (:read-only opts)))
       [:input.field {:default-value (:value opts)
-               :auto-focus true
-               :on-blur (fn [e]
-                          (x/setval (:path opts) (.. e -target -value) app-state)
-                          ((:save-changes! opts))
-                          (reset! editing? false))}]
+                     :auto-focus true
+                     :on-blur (fn [e]
+                                (x/setval (:path opts) (.. e -target -value) app-state)
+                                ((:save-changes! opts))
+                                (reset! editing? false))}]
       [:div.field {:on-click (fn [_] (reset! editing? true))}
        (:value opts)
        "\u00a0"])))
@@ -89,25 +136,87 @@
                                (on-success))
                  :on-error (fn [err] (js/console.error "ERROR SAVING SHEET" err))}))
 
+(defn sheet-preview-view
+  [sheet]
+  [:div.preview
+   [:h3 {:tw "ml-4 font-bold"} "Preview"]
+   [:table
+    (let [headers (first (:score-sheets/data sheet))
+          results (->> (rest (:score-sheets/data sheet))
+                       (map (fn [row] (results/result-row->game-results
+                                        headers row)))
+                       (group-by :class))]
+      (doall
+        (for [[class class-results] results]
+          ^{:key class}
+          [:<>
+           [:thead
+            [:tr
+             [:th {:tw "font-normal text-sm text-gray-500"}
+              (some-> class string/capitalize)]]
+            [:tr [:th ""]
+             [:th "Name"] [:th "Place"]
+             (for [event-name results/events-in-order]
+               ^{:key event-name}
+               [:th (results/abbrev-event-name event-name)])]]
+           [:tbody
+            (for [result (->> class-results (sort-by :placing))]
+              ^{:key (hash result)}
+              [:tr
+               [:td {:tw "bg-white"}]
+               [:td (:name result)]
+               [:td (:placing result)]
+               (for [event-name results/events-in-order
+                     :let [{:keys [distance-inches clock-minutes weight]}
+                           (get-in result [:events event-name])]]
+                 ^{:key event-name}
+                 [:td
+                  (if (or (nil? weight) (nil? distance-inches)
+                          (nan? weight) (nan? distance-inches)
+                          (and (zero? weight) (zero? distance-inches)))
+                    "N/A"
+                    (case event-name
+                      "caber"
+                      [:<>
+                       (results/display-clock clock-minutes)
+                       " "
+                       (results/display-distance distance-inches)
+                       [:br]
+                       (results/display-weight weight)]
+                      ("braemar" "open" "sheaf")
+                      [:<>
+                       (results/display-distance distance-inches)
+                       [:br]
+                       (results/display-weight weight)]
+                      (results/display-distance distance-inches)))])])]])))]])
+
 (defn sheet-view
   []
   (r/with-let [dt-formatter (js/Intl.DateTimeFormat. js/undefined #js {:timeZone "UTC"})
                last-saved (r/atom nil)
                save-changes! (fn []
                                (let [sheet (get-in @app-state
-                                                   [:score-sheets (:active-sheet @app-state)])]
+                                                   [(if (:admin-view @app-state)
+                                                      :submitted-sheets
+                                                      :score-sheets)
+                                                    (:active-sheet @app-state)])]
                                  (save-sheet! sheet #(reset! last-saved sheet))))]
     (let [active-sheet (:active-sheet @app-state)
-          sheet (get-in @app-state [:score-sheets active-sheet])
-          editable? (= "pending" (:score-sheets/status sheet)) ; TODO: or current user is admin
+          sheet (if (:admin-view @app-state)
+                  (get-in @app-state [:submitted-sheets active-sheet])
+                  (get-in @app-state [:score-sheets active-sheet]))
+          editable? (or (= "pending" (:score-sheets/status sheet))
+                        (= "admin" (:members/site-code (:logged-in-user @app-state))))
           member-names (into #{}
                              (map (fn [{:members/keys [first-name last-name]}]
                                     (str last-name ", " first-name)))
                              (@app-state :members))]
       (when (nil? @last-saved) (reset! last-saved sheet))
       [:div {:tw "flex flex-col gap-3"}
-       [:a {:href "/members" :on-click (fn [e] (.preventDefault e)
-                                         (swap! app-state assoc :active-sheet nil))
+       [:a {:href "/members"
+            :on-click (fn [e] (.preventDefault e)
+                        (.pushState js/history nil "" "/members")
+                        (swap! app-state assoc :active-sheet nil :admin-view false))
             :tw styles/a-tw}
         "Back to All Sheets"]
        [:h2 {:tw "text-lg"} "Score Sheet"]
@@ -117,6 +226,7 @@
             (::saving? @app-state) [:span "Saving..."]
             (= @last-saved sheet) [:span "Changes saved"]
             :else [:span "Unsaved Changes"])])
+
        (r/with-let [new-game-name (r/atom nil)]
          [:<>
           [:label [:span {:tw "font-bold"} "Game: "]
@@ -246,7 +356,10 @@
                                                                     x/NONE))
                                                              app-state)
                                                            (save-changes!))}))))))}]])
-       (let [partial-path [x/ATOM :score-sheets (x/keypath active-sheet)
+       (let [partial-path [x/ATOM (if (:admin-view @app-state)
+                                    :submitted-sheets
+                                    :score-sheets)
+                           (x/keypath active-sheet)
                            :score-sheets/data]
              name-idx (x/select-first
                         [:score-sheets/data x/FIRST
@@ -308,89 +421,46 @@
                                       (save-changes!))}
                  " + "]]])]]])
 
-
-       [:div.preview
-        [:h3 {:tw "ml-4 font-bold"} "Preview"]
-        [:table
-         (let [headers (first (:score-sheets/data sheet))
-               results (->> (rest (:score-sheets/data sheet))
-                            (map (fn [row] (results/result-row->game-results
-                                           headers row)))
-                            (group-by :class))]
-           (doall
-             (for [[class class-results] results]
-               ^{:key class}
-               [:<>
-                [:thead
-                [:tr
-                 [:th {:tw "font-normal text-sm text-gray-500"}
-                  [string/capitalize class]]]
-                [:tr [:th ""]
-                 [:th "Name"] [:th "Place"]
-                 (for [event-name results/events-in-order]
-                   [:th (results/abbrev-event-name event-name)])]]
-                [:tbody
-                 (for [result (->> class-results (sort-by :placing))]
-                   [:tr
-                    [:td {:tw "bg-white"}]
-                    [:td (:name result)]
-                    [:td (:placing result)]
-                    (for [event-name results/events-in-order
-                          :let [{:keys [distance-inches clock-minutes weight] :as res}
-                                (get-in result [:events event-name])]]
-                      [:td
-                       (if (or (nil? weight) (nil? distance-inches)
-                               (and (zero? weight) (zero? distance-inches)))
-                         "N/A"
-                         (case event-name
-                           "caber"
-                           [:<>
-                            (results/display-clock clock-minutes)
-                            " "
-                            (results/display-distance distance-inches)
-                            [:br]
-                            (results/display-weight weight)]
-                           ("braemar" "open" "sheaf")
-                           [:<>
-                            (results/display-distance distance-inches)
-                            [:br]
-                            (results/display-weight weight)]
-                           (results/display-distance distance-inches)))])])]])))]]
+       [sheet-preview-view sheet]
 
        [:div.submit
 
-        (case (:score-sheets/status sheet)
-          "pending"
-          [:button {:on-click (fn []
-                                (when (js/confirm "Submit these results for approval? You won't be able to edit them anymore.")
-                                  (ajax/request {:method :post
-                                                 :uri (str "/api/score-sheets/"
-                                                           (:score-sheets/id sheet)
-                                                           "/submit")
-                                                 :credentials? true
-                                                 :on-success (fn [_]
-                                                               (swap!
-                                                                 app-state
-                                                                 assoc-in
-                                                                 [:score-sheets
-                                                                  active-sheet
-                                                                  :score-sheets/status]
-                                                                 "complete"))})))}
-           "Submit results" ]
-          "complete"
-          [:span "Awaiting admin approval"]
-          "approved"
-          [:span "Results approved & in the database"]
-          nil "")]])))
+        (if (:admin-view @app-state)
+          [:button "Approve"]
+          (case (:score-sheets/status sheet)
+            "pending"
+            [:button {:on-click (fn []
+                                  (when (js/confirm "Submit these results for approval? You won't be able to edit them anymore.")
+                                    (ajax/request {:method :post
+                                                   :uri (str "/api/score-sheets/"
+                                                             (:score-sheets/id sheet)
+                                                             "/submit")
+                                                   :credentials? true
+                                                   :on-success (fn [_]
+                                                                 (swap!
+                                                                   app-state
+                                                                   assoc-in
+                                                                   [:score-sheets
+                                                                    active-sheet
+                                                                    :score-sheets/status]
+                                                                   "complete"))})))}
+             "Submit results" ]
+            "complete"
+            [:span "Awaiting admin approval"]
+            "approved"
+            [:span "Results approved & in the database"]
+            nil ""))]])))
 
 (defn upload-results-view
   []
   (r/with-let [back-listener (fn [_]
                                (let [path js/window.location.pathname]
-                                 (if (= path"/members")
-                                   (swap! app-state assoc :active-sheet nil)
-                                   (when-let [[_ sheet-id] (re-matches #"^/members/sheet/(\d+)$" path)]
-                                     (swap! app-state assoc :active-sheet (js/parseInt sheet-id 10))))))
+                                 (if (= path "/members")
+                                   (swap! app-state assoc :active-sheet nil :admin-view false)
+                                   (when-let [[_ sheet-id ?admin] (re-matches #"^/members/sheet/(\d+)(/admin)?$" path)]
+                                     (swap! app-state assoc
+                                            :active-sheet (js/parseInt sheet-id 10)
+                                            :admin-view (boolean ?admin))))))
                _ (.addEventListener js/window "popstate" back-listener)]
     (if (or (nil? (:active-sheet @app-state)) (nil? (:score-sheets @app-state)))
       [select-sheet-view]

@@ -134,6 +134,22 @@
     jdbc/snake-kebab-opts))
 
 (comment
+  #_(jdbc/execute!
+    @datasource
+    ["update members set site_code = 'admin'
+      where id = any('{1442, 962}')"])
+
+  (jdbc/execute!
+    @datasource
+    ["insert into members_roles (member_id, role)
+      values (1442, 'admin'), (962, 'admin')"])
+
+  (jdbc/execute!
+    @datasource
+    ["select * from members where site_code = 'admin'"])
+  )
+
+(comment
   (member 958)
   (jdbc/execute!
     @datasource
@@ -143,10 +159,11 @@
 
 (defn member-roles
   [member-id]
-  (jdbc/execute!
-    @datasource
-    ["select \"role\" from members_roles where \"member_id\" = ?"
-     member-id]))
+  (->> (jdbc/execute!
+         @datasource
+         ["select \"role\" from members_roles where \"member_id\" = ?"
+          member-id])
+       (into #{} (map (comp keyword :members_roles/role)))))
 
 (defn member-game-results
   [member-id]
@@ -471,21 +488,31 @@
 
 (defn update-sheet-for-user
   [{:keys [user-id sheet-id sheet]}]
-  (jdbc/execute!
-    @datasource
-    ["update score_sheets
-      set games_id = ?,
-          games_date = ?,
-          data = ?
-      where id = ? and submitted_by = ?"
-     (:score-sheets/games-id sheet)
-     (some-> (:score-sheets/games-date sheet)
-             (.getTime) (java.sql.Date.))
-     (:score-sheets/data sheet)
-     sheet-id user-id]))
+  (let [res (jdbc/execute-one!
+              @datasource
+              ["update score_sheets set games_id = ?, games_date = ?, data = ?
+                where id = ? and submitted_by = ?"
+               (:score-sheets/games-id sheet)
+               (some-> (:score-sheets/games-date sheet)
+                       (.getTime) (java.sql.Date.))
+               (:score-sheets/data sheet)
+               sheet-id user-id])]
+    (if (and (zero? (::jdbc/update-count res))
+             ((member-roles user-id) :admin))
+      (jdbc/execute-one!
+        @datasource
+        ["update score_sheets set games_id = ?, games_date = ?, data = ?
+          where id = ?"
+         (:score-sheets/games-id sheet)
+         (some-> (:score-sheets/games-date sheet)
+                 (.getTime) (java.sql.Date.))
+         (:score-sheets/data sheet)
+         sheet-id])
+      res)))
 
 (comment
   (java.sql.Date. (.getTime (java.util.Date.)))
+  (update-sheet-for-user {:user-id 1 :sheet-id 123344 :sheet []})
   )
 
 (defn submit-sheet-for-approval
@@ -496,6 +523,13 @@
       set status = 'complete'
       where id = ? and submitted_by = ? and status = 'pending'"
      sheet-id user-id]))
+
+(defn submitted-score-sheets
+  []
+  (jdbc/execute!
+    @datasource
+    ["select * from score_sheets where status = 'complete'"]
+    jdbc/snake-kebab-opts))
 
 ;; Records
 

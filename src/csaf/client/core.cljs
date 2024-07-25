@@ -24,7 +24,7 @@
     {:method "get"
      :uri "/api/init-data"
      :on-success
-     (fn [{:keys [sheets games members logged-in-user]}]
+     (fn [{:keys [sheets games members logged-in-user submitted-sheets]}]
        (swap! app-state
               assoc
               :score-sheets (into {}
@@ -34,7 +34,11 @@
                                   sheets)
               :games games
               :members members
-              :logged-in-user logged-in-user))}))
+              :logged-in-user logged-in-user)
+       (when submitted-sheets
+         (swap! app-state assoc :submitted-sheets
+                (into {} (map (fn [s] [(:score-sheets/id s) s]))
+                      submitted-sheets))))}))
 
 (defn login-view
   []
@@ -83,8 +87,10 @@
 
 (defn ^:export init
   []
-  (when-let [[_ sheet-id] (re-matches #"^/members/sheet/(\d+)$" js/window.location.pathname)]
-    (swap! app-state assoc :active-sheet (js/parseInt sheet-id 10)))
+  (when-let [[_ sheet-id ?admin] (re-matches #"^/members/sheet/(\d+)(/admin)?$"
+                                             js/window.location.pathname)]
+    (swap! app-state assoc :active-sheet (js/parseInt sheet-id 10)
+           :admin-view (boolean ?admin)))
   (fetch-init-data!)
   (check-auth!)
   (render))
