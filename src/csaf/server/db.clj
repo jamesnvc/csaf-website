@@ -628,6 +628,15 @@
     ["select * from jsonb_to_recordset(?) as x(a text, b text, c integer)"
      [{:a "foo" :b "bar" :c 2}
       {:a "baz" :b "quux" :c 3}]])
+
+  (jdbc/execute!
+    @datasource
+    ["begin;
+      delete from game_results_placing where game_instance_id in (select id from game_instances where extract(\"year\" from date) = 2024);
+      delete from game_member_results where game_instance in (select id from game_instances where extract(\"year\" from date) = 2024);
+      delete from game_instances where extract(\"year\" from date) = 2024;
+      update score_sheets set status = 'complete' where status = 'approved' and extract(\"year\" from games_date) = 2024;
+      commit;"])
   )
 
 ;; Records
