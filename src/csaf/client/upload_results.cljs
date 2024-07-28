@@ -25,47 +25,58 @@
                                nil ""
                                (str "/members/sheet/" (:score-sheets/id new-sheet))))}))
 
+(defn admin-sheet-item-view
+  [{:score-sheets/keys [id created-at games-id games-date status]}]
+  [:li [:a {:href (str "/members/sheet/" id)
+            :on-click (fn [e]
+                        (.preventDefault e)
+                        (.stopPropagation e)
+                        (.pushState js/history
+                                    nil ""
+                                    (str "/members/sheet/" id "/admin"))
+                        (swap! app-state assoc :active-sheet id
+                               :admin-view true))}
+        (let [game-name (x/select-first
+                          [x/ATOM :games x/ALL
+                           (x/if-path [:games/id (x/pred= games-id)]
+                                      :games/name)]
+                          app-state)]
+          [:span game-name
+           (when games-date (str " @ " (.toLocaleDateString games-date)))])
+        " "
+        [:span {:tw "text-sm text-gray-400"}
+         "Created " (.toLocaleDateString created-at)]
+        " "
+        [:span {:tw "text-sm"}
+         (case status
+           "pending" "In Progress"
+           "complete" "Awaiting Approval"
+           "approved" "Approved")]]])
+
 (defn admin-view
   []
-  [:div.admin
-   [:h1 "Admin"]
-   (when (seq (:submitted-sheets @app-state))
-     [:<>
-      [:h2 "Submitted, Pending Approval"]
-      [:ul
-       (doall
-         (for [{:score-sheets/keys [id created-at games-id games-date status]}
-               (->> (:submitted-sheets @app-state)
-                    vals
-                    (sort-by :score-sheets/created-at))]
-           ^{:key id}
-           [:li [:a {:href (str "/members/sheet/" id)
-                     :on-click (fn [e]
-                                 (.preventDefault e)
-                                 (.stopPropagation e)
-                                 (.pushState js/history
-                                             nil ""
-                                             (str "/members/sheet/" id "/admin"))
-                                 (swap! app-state assoc :active-sheet id
-                                        :admin-view true))}
-                 (if games-id
-                   (let [game-name (x/select-first
-                                     [x/ATOM :games x/ALL
-                                      (x/if-path [:games/id (x/pred= games-id)]
-                                                 :games/name)]
-                                     app-state)]
-                     [:span game-name
-                      (when games-date (str " @ " (.toLocaleDateString games-date)))])
-                   "New Results Sheet")
-                 " "
-                 [:span {:tw "text-sm text-gray-400"}
-                  "Created " (.toLocaleDateString created-at)]
-                 " "
-                 [:span {:tw "text-sm"}
-                  (case status
-                    "pending" "In Progress"
-                    "complete" "Awaiting Approval"
-                    "approved" "Approved")]]]))]])])
+  (let [submitted (->> @app-state :submitted-sheets
+                       vals (filter (filter (fn [{:keys [status]}] (= "complete" status)))))
+        approved (->> @app-state :submitted-sheets
+                       vals (filter (filter (fn [{:keys [status]}] (= "approved" status)))))]
+    [:div.admin
+     [:h1 "Admin"]
+     (when (seq submitted)
+       [:<>
+        [:h2 "Submitted, Pending Approval"]
+        [:ul
+         (doall
+           (for [sheet (->> submitted (sort-by :score-sheets/created-at))]
+             ^{:key (:score-sheets/id sheet)}
+             [admin-sheet-item-view sheet]))]])
+     (when (seq approved)
+       [:<>
+        [:h2 "Approved & Saved"]
+        [:ul
+         (doall
+           (for [sheet (->> approved (sort-by :score-sheets/created-at))]
+             ^{:key (:score-sheets/id sheet)}
+             [admin-sheet-item-view sheet]))]])]))
 
 (defn select-sheet-view
   []
@@ -114,7 +125,7 @@
 (defn field-view
   [opts]
   (r/with-let [editing? (r/atom false)]
-    (if (and @editing? (not (:read-only opts)))
+    (if (and @editing? (not (:read-only? opts)))
       [:input.field {:default-value (:value opts)
                      :auto-focus true
                      :on-blur (fn [e]
@@ -211,8 +222,9 @@
           sheet (if (:admin-view @app-state)
                   (get-in @app-state [:submitted-sheets active-sheet])
                   (get-in @app-state [:score-sheets active-sheet]))
-          editable? (or (= "pending" (:score-sheets/status sheet))
-                        (= "admin" (:members/site-code (:logged-in-user @app-state))))
+          editable? (and (not= "approved" (:score-sheets/status sheet))
+                         (or (= "pending" (:score-sheets/status sheet))
+                             (= "admin" (:members/site-code (:logged-in-user @app-state)))))
           member-names (into {}
                              (map (fn [{:members/keys [first-name last-name id]}]
                                     [(str last-name ", " first-name) id]))
@@ -387,7 +399,7 @@
                (for [[cidx col] (map-indexed vector headers)]
                  ^{:key cidx}
                  [:th [field-view {:value col
-                                   :read-only (not editable?)
+                                   :read-only? (not editable?)
                                    :path (conj partial-path (x/nthpath 0)
                                                (x/nthpath cidx))
                                    :save-changes! save-changes!}]])]])
@@ -446,7 +458,7 @@
                                                        (swap!
                                                          app-state
                                                          assoc-in
-                                                         [:score-sheets
+                                                         [:submitted-sheets
                                                           active-sheet
                                                           :score-sheets/status]
                                                          "approved"))})))}

@@ -529,7 +529,7 @@
   []
   (jdbc/execute!
     @datasource
-    ["select * from score_sheets where status = 'complete'"]
+    ["select * from score_sheets where status = 'complete' or status = 'approved'"]
     jdbc/snake-kebab-opts))
 
 (defn create-games-instance!
