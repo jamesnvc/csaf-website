@@ -1,7 +1,7 @@
 (ns csaf.client.results
   (:require
    [clojure.string :as string]
-   [csaf.util :refer [?>]]))
+   [csaf.util :refer [?> nan?]]))
 
 (defn float= [x y]
   (let [[x y] (map float [x y])]
@@ -63,12 +63,12 @@
 (defn ->int
   [s]
   #?(:cljs (js/parseInt s 10)
-     :clj (Long. s)))
+     :clj (try (Long. s) (catch NumberFormatException _ nil))))
 
 (defn ->float
   [s]
-  #?(:cljs (js/parseFloat s)
-     :clj (Float. s)))
+  #?(:cljs (?> (js/parseFloat s) nan? (constantly nil))
+     :clj (try (Float. s) (catch NumberFormatException _ nil))))
 
 (def class-names
   {"juniors" "juniors"
@@ -113,7 +113,9 @@
     (->> (reduce
            (fn [res evt]
              (if (and (get row-keys evt)
+                      (not (string/blank? (get row-keys evt)))
                       (get row-keys (str evt "_weight"))
+                      (not (string/blank? (get row-keys (str evt "_weight"))))
                       (not= 0 (->float (get row-keys (str evt "_weight")))))
                (assoc-in res [:events (abbrev->name evt)]
                          (cond-> {:weight (->float (get row-keys (str evt "_weight")))}

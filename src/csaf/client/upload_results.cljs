@@ -137,7 +137,7 @@
                  :on-error (fn [err] (js/console.error "ERROR SAVING SHEET" err))}))
 
 (defn sheet-preview-view
-  [sheet]
+  [sheet member-names]
   [:div.preview
    [:h3 {:tw "ml-4 font-bold"} "Preview"]
    [:table
@@ -164,7 +164,13 @@
               ^{:key (hash result)}
               [:tr
                [:td {:tw "bg-white"}]
-               [:td (:name result)]
+               (let [member-id (get member-names (:name result))]
+                 [:td {:tw (when-not member-id "bg-red-500")}
+                  (if member-id
+                    [:a {:href (str "/athletes/" member-id)}
+                     (:name result)]
+                    [:span (:name result)
+                     [:span {:tw "text-xs ml-2"} "new"]])])
                [:td (:placing result)]
                (for [event-name results/events-in-order
                      :let [{:keys [distance-inches clock-minutes weight]}
@@ -207,9 +213,9 @@
                   (get-in @app-state [:score-sheets active-sheet]))
           editable? (or (= "pending" (:score-sheets/status sheet))
                         (= "admin" (:members/site-code (:logged-in-user @app-state))))
-          member-names (into #{}
-                             (map (fn [{:members/keys [first-name last-name]}]
-                                    (str last-name ", " first-name)))
+          member-names (into {}
+                             (map (fn [{:members/keys [first-name last-name id]}]
+                                    [(str last-name ", " first-name) id]))
                              (@app-state :members))]
       (when (nil? @last-saved) (reset! last-saved sheet))
       [:div {:tw "flex flex-col gap-3"}
@@ -421,12 +427,30 @@
                                       (save-changes!))}
                  " + "]]])]]])
 
-       [sheet-preview-view sheet]
+       [sheet-preview-view sheet member-names]
 
        [:div.submit
 
-        (if (:admin-view @app-state)
-          [:button "Approve"]
+        (if (and (= "complete" (:score-sheets/status sheet))
+                 (:admin-view @app-state))
+          ;; TODO: validate game, game date, etc
+          [:button
+           {:on-click (fn []
+                        (when (js/confirm "Confirm and save these results?")
+                          (ajax/request {:method :post
+                                         :uri (str "/api/score-sheets/"
+                                                   (:score-sheets/id sheet)
+                                                   "/approve")
+                                         :credentials? true
+                                         :on-success (fn [_]
+                                                       (swap!
+                                                         app-state
+                                                         assoc-in
+                                                         [:score-sheets
+                                                          active-sheet
+                                                          :score-sheets/status]
+                                                         "approved"))})))}
+           "Approve"]
           (case (:score-sheets/status sheet)
             "pending"
             [:button {:on-click (fn []

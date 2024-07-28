@@ -11,7 +11,8 @@
    [csaf.config :as config]
    [jsonista.core :as json]
    [camel-snake-kebab.core :refer [->kebab-case]]
-   [crypto.password.bcrypt :as bcrypt])
+   [crypto.password.bcrypt :as bcrypt]
+   [csaf.client.results :as results])
   (:import
    (org.postgresql.util PGobject)
    (java.sql PreparedStatement)))
@@ -530,6 +531,104 @@
     @datasource
     ["select * from score_sheets where status = 'complete'"]
     jdbc/snake-kebab-opts))
+
+(defn create-games-instance!
+  [{:keys [game-id date]}]
+  (jdbc/execute-one!
+    @datasource
+    ["insert into game_instances (game_id, date) values (?, ?) returning *"
+     game-id date]
+    jdbc/snake-kebab-opts))
+
+(defn approve-sheet!
+  [{:keys [sheet-id]}]
+  (let [sheet (jdbc/execute-one!
+                @datasource
+                ["select * from score_sheets where id = ? and status = 'complete'"
+                 sheet-id]
+                jdbc/snake-kebab-opts)]
+    (when-not sheet
+      (throw (ex-info "Nonexistant or incorrect state for sheet"
+                      {:sheet-id sheet-id})))
+
+    (let [[headers & content] (:score-sheets/data sheet)
+          results (map (fn [row] (results/result-row->game-results headers row)) content)
+          ;; TODO add new users
+          member-names (map :name results)
+          member-names->id (->>
+                             (jdbc/execute!
+                               @datasource
+                               ["with names as (select jsonb_array_elements_text(?) as name)
+                               select id, names.name
+                               from members
+                               join names on names.name = last_name || ', ' || first_name"
+                                (vec member-names)])
+                             (into {} (map (fn [r] [(:name r) (:members/id r)]))))
+          results (x/transform
+                    [x/ALL (x/collect-one :name) :members/id]
+                    (fn [member-name _] (member-names->id member-name))
+                    results)
+          year (+ 1900 (.getYear (:score-sheets/games-date sheet)))
+          year-bests (event-records-for-year-by-class year)
+          year-weights (event-top-weights-for-year-by-class year)
+          ;; TODO validate all results are reasonable
+          new-game-instance (create-games-instance! {:game-id (:score-sheets/games-id sheet)
+                                                                                  :date (:score-sheets/games-date sheet)})]
+      ;; create results
+      (jdbc/execute!
+        @datasource
+        ["insert into game_member_results
+          (member_id, game_instance, event, distance_inches, clock_minutes, weight, score, class)
+          select * from jsonb_to_recordset(?) as x(
+                member_id integer, game_instance_id integer,
+                event game_event_type, distance_inches numeric(8, 1),
+                clock_minutes integer, weight numeric(8, 2), score numeric(11, 4),
+                class membership_class_code)
+            "
+         (vec
+           (for [result results
+                 [event event-result] (:events result)
+                 :when (and (some? (:distance-inches event-result))
+                            (some? (:weight event-result)))]
+             {:member_id (:members/id result)
+              :game_instance_id (new-game-instance :game-instances/id)
+              :event event
+              :distance_inches (:distance-inches event-result)
+              :clock_minutes (:clock-minutes event-result)
+              :weight (:weight event-result)
+              :score (score-for-result
+                       (:class result)
+                       #:game-member-results{:event event
+                                             :weight (:weight event-result)
+                                             :distance-inches (:distance-inches event-result)
+                                             :clock-minutes (:clock-minutes event-result)}
+                       year-bests
+                       year-weights)
+              :class (:class result)}))])
+      ;; create placings
+      (jdbc/execute!
+        @datasource
+        ["insert into game_results_placing (member_id, game_instance_id, \"placing\", class)
+          select * from jsonb_to_recordset(?) as x(member_id integer, game_instance_id integer,
+               \"placing\" integer, class membership_class_code)"
+         (vec (for [result results]
+                {:member_id (:members/id result)
+                 :game_instance_id (new-game-instance :game-instances/id)
+                 :placing (:placing result)
+                 :class (:class result)}))])
+      ;; update sheet state
+      (jdbc/execute!
+        @datasource
+        ["update score_sheets set status = 'approved' where id = ?" sheet-id]))))
+
+(comment
+  (approve-sheet! {:sheet-id 1})
+  (jdbc/execute!
+    @datasource
+    ["select * from jsonb_to_recordset(?) as x(a text, b text, c integer)"
+     [{:a "foo" :b "bar" :c 2}
+      {:a "baz" :b "quux" :c 3}]])
+  )
 
 ;; Records
 
