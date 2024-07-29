@@ -552,6 +552,7 @@
                       {:sheet-id sheet-id})))
 
     (let [[headers & content] (:score-sheets/data sheet)
+          ;; TODO validate all results are reasonable
           results (map (fn [row] (results/result-row->game-results headers row)) content)
           member-names (map :name results)
           member-names->id (->>
@@ -586,28 +587,38 @@
                     results)
           year (+ 1900 (.getYear (:score-sheets/games-date sheet)))
           year-bests (event-records-for-year-by-class year)
-          year-weights (event-top-weights-for-year-by-class year)
-          ;; TODO validate all results are reasonable
-          new-game-instance (create-games-instance! {:game-id (:score-sheets/games-id sheet)
-                                                     :date (:score-sheets/games-date sheet)})]
-      ;; create results
+          year-weights (event-top-weights-for-year-by-class year)]
       (jdbc/execute!
         @datasource
-        ["insert into game_member_results
-          (member_id, game_instance, event, distance_inches, clock_minutes, weight, score, class)
-          select * from jsonb_to_recordset(?) as x(
-                member_id integer, game_instance_id integer,
-                event game_event_type, distance_inches numeric(8, 1),
-                clock_minutes integer, weight numeric(8, 2), score numeric(11, 4),
-                class membership_class_code)
-            "
+        ["with new_game_instance as (insert into game_instances (game_id, date) values (?, ?)
+                                     returning *),
+          new_results as (
+           insert into game_member_results
+           (game_instance, member_id, event, distance_inches, clock_minutes, weight, score, class)
+           select new_game_instance.id, x.*
+              from jsonb_to_recordset(?) as x(
+                 member_id integer,
+                 event game_event_type, distance_inches numeric(8, 1),
+                 clock_minutes integer, weight numeric(8, 2), score numeric(11, 4),
+                 class membership_class_code)
+               join new_game_instance on true
+             ),
+           new_placings as (
+            insert into game_results_placing (game_instance_id, member_id, \"placing\", class)
+            select new_game_instance.id, x.*
+              from jsonb_to_recordset(?) as x(member_id integer,
+               \"placing\" integer, class membership_class_code)
+              join new_game_instance on true)
+            update score_sheets set status = 'approved' where id = ?"
+         (:score-sheets/games-id sheet)
+         (:score-sheets/games-date sheet)
+
          (vec
            (for [result results
                  [event event-result] (:events result)
                  :when (and (some? (:distance-inches event-result))
                             (some? (:weight event-result)))]
              {:member_id (:members/id result)
-              :game_instance_id (new-game-instance :game-instances/id)
               :event event
               :distance_inches (:distance-inches event-result)
               :clock_minutes (:clock-minutes event-result)
@@ -620,22 +631,15 @@
                                              :clock-minutes (:clock-minutes event-result)}
                        year-bests
                        year-weights)
-              :class (:class result)}))])
-      ;; create placings
-      (jdbc/execute!
-        @datasource
-        ["insert into game_results_placing (member_id, game_instance_id, \"placing\", class)
-          select * from jsonb_to_recordset(?) as x(member_id integer, game_instance_id integer,
-               \"placing\" integer, class membership_class_code)"
+              :class (:class result)}))
+
          (vec (for [result results]
                 {:member_id (:members/id result)
-                 :game_instance_id (new-game-instance :game-instances/id)
                  :placing (:placing result)
-                 :class (:class result)}))])
-      ;; update sheet state
-      (jdbc/execute!
-        @datasource
-        ["update score_sheets set status = 'approved' where id = ?" sheet-id]))))
+                 :class (:class result)}))
+
+         sheet-id
+         ]))))
 
 (comment
   (approve-sheet! {:sheet-id 1})
