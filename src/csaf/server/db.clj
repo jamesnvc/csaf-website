@@ -384,70 +384,68 @@
   (let [bests (event-records-for-year-by-class year)
         weights (event-top-weights-for-year-by-class year)]
     (->>
-           (jdbc/plan
-             @datasource
-             (cond->
-                 [(str
-                    "select games.id as games_id,
-         games.name,
-         to_char(game_instances.date, 'YYYY-MM-DD') as date,
-         game_results_placing.placing,
-         members.id, members.first_name, members.last_name,
-         game_member_results.event, game_member_results.distance_inches,
-            game_member_results.clock_minutes, game_member_results.weight,
-            game_member_results.class, game_member_results.score
-      from game_instances
-      join games on games.id = game_instances.game_id
-      join game_member_results on game_member_results.game_instance = game_instances.id
-      join game_results_placing on game_results_placing.game_instance_id = game_instances.id and game_results_placing.member_id = game_member_results.member_id
-      join members on game_member_results.member_id = members.id
-      where true
-      "
-                    (when year
-                      " and extract(year from \"date\") = ? ")
-                    (when (seq classes)
-                      " and game_member_results.class = any(cast(? as membership_class_code[]))")
-                    (when event
-                      " and game_member_results.event = cast(? as game_event_type)"))]
-                 (some? year) (conj year)
-                 (seq classes) (conj (into-array java.lang.String classes))
-                 (some? event) (conj event))
-             jdbc/snake-kebab-opts)
-           (reduce
-             (fn [acc row]
-               (cond-> acc
-                 (not (contains? (get acc (:date row)) (:games_id row)))
-                 (assoc-in [(:date row) (:games_id row)]
-                           {:games/name (:name row) :results {}})
+      (jdbc/plan
+        @datasource
+        (cond->
+            [(str "select games.id as games_id,
+                   games.name,
+                   to_char(game_instances.date, 'YYYY-MM-DD') as date,
+                   game_results_placing.placing,
+                   members.id, members.first_name, members.last_name,
+                   game_member_results.event, game_member_results.distance_inches,
+                      game_member_results.clock_minutes, game_member_results.weight,
+                      game_member_results.class, game_member_results.score
+                  from game_instances
+                  join games on games.id = game_instances.game_id
+                  join game_member_results on game_member_results.game_instance = game_instances.id
+                  join game_results_placing on game_results_placing.game_instance_id = game_instances.id and game_results_placing.member_id = game_member_results.member_id
+                  join members on game_member_results.member_id = members.id
+                  where true"
+               (when year
+                 " and extract(year from \"date\") = ? ")
+               (when (seq classes)
+                 " and game_member_results.class = any(cast(? as membership_class_code[]))")
+               (when event
+                 " and game_member_results.event = cast(? as game_event_type)"))]
+          (some? year) (conj year)
+          (seq classes) (conj (into-array java.lang.String classes))
+          (some? event) (conj event))
+        jdbc/snake-kebab-opts)
+      (reduce
+        (fn [acc row]
+          (cond-> acc
+            (not (contains? (get acc (:date row)) (:games_id row)))
+            (assoc-in [(:date row) (:games_id row)]
+                      {:games/name (:name row) :results {}})
 
-                 (not (contains? (get-in acc [(:date row) (:games_id row) :results])
-                                 (:id row)))
-                 (assoc-in [(:date row) (:games_id row) :results (:id row)]
-                           {:members/id (:id row)
-                            :members/first-name (:first_name row)
-                            :members/last-name (:last_name row)
-                            :game-results-placing/placing (:placing row)
-                            :game-member-results/class (:class row)
-                            :events {}})
+            (not (contains? (get-in acc [(:date row) (:games_id row) :results])
+                            (:id row)))
+            (assoc-in [(:date row) (:games_id row) :results (:id row)]
+                      {:members/id (:id row)
+                       :members/first-name (:first_name row)
+                       :members/last-name (:last_name row)
+                       :game-results-placing/placing (:placing row)
+                       :game-member-results/class (:class row)
+                       :events {}})
 
-                 true
-                 (assoc-in [(:date row) (:games_id row) :results (:id row) :events (:event row)]
-                           {:game-member-results/event (:event row)
-                            :game-member-results/class (:class row)
-                            :game-member-results/score (:score row)
-                            :game-member-results/clock-minutes (:clock_minutes row)
-                            :game-member-results/distance-inches (:distance_inches row)
-                            :game-member-results/weight (:weight row)})
+            true
+            (assoc-in [(:date row) (:games_id row) :results (:id row) :events (:event row)]
+                      {:game-member-results/event (:event row)
+                       :game-member-results/class (:class row)
+                       :game-member-results/score (:score row)
+                       :game-member-results/clock-minutes (:clock_minutes row)
+                       :game-member-results/distance-inches (:distance_inches row)
+                       :game-member-results/weight (:weight row)})
 
-                 true (update-in [(:date row) (:games_id row) :results (:id row) :events (:event row)]
-                                 (fn [result]
-                                   (assoc result :calculated-score
-                                          (score-for-result
-                                            (:class row)
-                                            result
-                                            bests
-                                            weights))))))
-             {}))))
+            true (update-in [(:date row) (:games_id row) :results (:id row) :events (:event row)]
+                            (fn [result]
+                              (assoc result :calculated-score
+                                     (score-for-result
+                                       (:class row)
+                                       result
+                                       bests
+                                       weights))))))
+        {}))))
 
 (comment
 
