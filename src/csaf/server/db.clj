@@ -590,6 +590,7 @@
         @datasource
         ["with new_game_instance as (insert into game_instances (game_id, date) values (?, ?)
                                      returning *),
+
           new_results as (
            insert into game_member_results
            (game_instance, member_id, event, distance_inches, clock_minutes, weight, score, class)
@@ -601,12 +602,14 @@
                  class membership_class_code)
                join new_game_instance on true
              ),
+
            new_placings as (
             insert into game_results_placing (game_instance_id, member_id, \"placing\", class)
             select new_game_instance.id, x.*
               from jsonb_to_recordset(?) as x(member_id integer,
                \"placing\" integer, class membership_class_code)
               join new_game_instance on true)
+
             update score_sheets set status = 'approved' where id = ?"
          (:score-sheets/games-id sheet)
          (:score-sheets/games-date sheet)
@@ -636,8 +639,7 @@
                  :placing (:placing result)
                  :class (:class result)}))
 
-         sheet-id
-         ]))))
+         sheet-id]))))
 
 (comment
   (approve-sheet! {:sheet-id 1})
@@ -663,6 +665,14 @@
   (jdbc/execute!
     @datasource
     ["update members set login = 'Test.' || random() where login = 'Test.Test'"])
+
+  ;; do the multiple inserts as CTEs work transactionally?
+  (jdbc/execute!
+    @datasource
+    ["with a as (insert into games (name) values ('foobar'))
+      insert into members_roles (member_id, role) values (?, 'admin')"
+     9999])
+  ;; looks like they do
   )
 
 ;; Records
