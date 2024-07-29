@@ -553,7 +553,6 @@
 
     (let [[headers & content] (:score-sheets/data sheet)
           results (map (fn [row] (results/result-row->game-results headers row)) content)
-          ;; TODO add new users
           member-names (map :name results)
           member-names->id (->>
                              (jdbc/execute!
@@ -564,6 +563,23 @@
                                join names on names.name = last_name || ', ' || first_name"
                                 (vec member-names)])
                              (into {} (map (fn [r] [(:name r) (:members/id r)]))))
+          member-names->id
+          (reduce
+            (fn [member-names result]
+              (if (contains? member-names (:name result))
+                member-names
+                (let [[lname fname] (string/split (:name result) #",\s*" 2)
+                      {:members/keys [id]}
+                      (jdbc/execute-one!
+                        @datasource
+                        ;; todo what else gets inserted?
+                        ["insert into members (first_name, last_name, login, password_hash, class, status)
+                          values (?, ?, ?, ?, 'unknown', 'active') returning *"
+                         fname lname (str lname "." fname)
+                         (bcrypt/encrypt "newpass")])]
+                  (assoc member-names (:name result) id))))
+            member-names->id
+            results)
           results (x/transform
                     [x/ALL (x/collect-one :name) :members/id]
                     (fn [member-name _] (member-names->id member-name))
@@ -573,7 +589,7 @@
           year-weights (event-top-weights-for-year-by-class year)
           ;; TODO validate all results are reasonable
           new-game-instance (create-games-instance! {:game-id (:score-sheets/games-id sheet)
-                                                                                  :date (:score-sheets/games-date sheet)})]
+                                                     :date (:score-sheets/games-date sheet)})]
       ;; create results
       (jdbc/execute!
         @datasource
@@ -637,6 +653,14 @@
       delete from game_instances where extract(\"year\" from date) = 2024;
       update score_sheets set status = 'complete' where status = 'approved' and extract(\"year\" from games_date) = 2024;
       commit;"])
+
+  ;; two users with the same login
+  (jdbc/execute!
+    @datasource
+    ["update members set login = 'Wilson.Adriane' where id = 856"])
+  (jdbc/execute!
+    @datasource
+    ["update members set login = 'Test.' || random() where login = 'Test.Test'"])
   )
 
 ;; Records
