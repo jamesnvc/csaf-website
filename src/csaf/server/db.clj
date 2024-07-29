@@ -143,7 +143,7 @@
   (jdbc/execute!
     @datasource
     ["insert into members_roles (member_id, role)
-      values (1442, 'admin'), (962, 'admin')"])
+      values (1442, 'admin'), (962, 'admin'), (1250, 'admin')"])
 
   (jdbc/execute!
     @datasource
