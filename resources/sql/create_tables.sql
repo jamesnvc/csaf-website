@@ -59,8 +59,8 @@ create table if not exists members (
   "master_first_date" date,
   "date_added" timestamp with time zone not null default now(),
   "site_code" membership_site_code not null default 'member',
-  "login" text not null,
-  "password_hash" text not null, -- TODO: hash
+  "login" text not null, -- TODO: this isn't unique...but the data has lots of dupes
+  "password_hash" text not null,
   "class" membership_class_code not null, -- I guess? replace NULL with 'unknown'?
   "region" text,
   "height" text,
