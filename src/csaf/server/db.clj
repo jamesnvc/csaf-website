@@ -437,7 +437,8 @@
                        :game-member-results/distance-inches (:distance_inches row)
                        :game-member-results/weight (:weight row)})
 
-            true (update-in [(:date row) (:games_id row) :results (:id row) :events (:event row)]
+            ;; debugging
+            #_#_true (update-in [(:date row) (:games_id row) :results (:id row) :events (:event row)]
                             (fn [result]
                               (assoc result :calculated-score
                                      (score-for-result

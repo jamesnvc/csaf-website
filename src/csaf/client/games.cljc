@@ -1,6 +1,7 @@
 (ns csaf.client.games
   (:require
    [clojure.string :as string]
+   #_[clojure.math :as math]
    [csaf.client.results :as results]))
 
 (defn games-history-filter-view
@@ -93,9 +94,12 @@
                  (for [event-name results/events-in-order
                        :when (or (not (get selected "filter-event"))
                                  (= event-name (get selected "filter-event")))
-                       :let [{:game-member-results/keys [distance-inches clock-minutes weight]}
+                       :let [{:game-member-results/keys [distance-inches clock-minutes weight] #_#_:as res}
                              (get-in result [:events event-name])]]
-                   [:td
+                   [:td #_{:tw (when (not= (some-> (:game-member-results/score res) float
+                                                 math/round)
+                                         (some-> (:calculated-score res) float math/round))
+                               "bg-red-500")}
                     (if (or (nil? weight) (nil? distance-inches)
                             (and (zero? weight) (zero? distance-inches)))
                       "N/A"
@@ -112,4 +116,8 @@
                          (results/display-distance distance-inches)
                          [:br]
                          (results/display-weight weight)]
-                        (results/display-distance distance-inches)))])])]])]]))]])
+                        (results/display-distance distance-inches)))
+                    #_#_#_#_[:br]
+                    (pr-str (:game-member-results/score res))
+                    " - "
+                    (pr-str (:calculated-score res))])])]])]]))]])
