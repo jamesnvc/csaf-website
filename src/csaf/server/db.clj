@@ -1022,7 +1022,7 @@
        and game_member_results.event <> 'sheaf'
        and game_member_results.event <> 'braemar'
        and game_member_results.score > 0
-       and game_member_results.class = any('{juniors, amateurs, womens, masters, open, lightweight}')
+       and game_member_results.class = any('{juniors, amateurs, womens, womensmaster, masters, open, lightweight}')
      window wnd as (partition by game_member_results.member_id, game_member_results.event
         order by score rows between unbounded preceding and unbounded following)
       ) union all (
@@ -1079,7 +1079,11 @@
               ;; masters-age, get the best masters result
               ;; & re-score it as open, use if better
               ;; (but needs to be the correct weight?)
-              (= cls "masters")
+              (and (= cls "masters")
+                   (or (nil? (get-in event-weight-limits [(:event row) cls]))
+                       (and (:weight row)
+                            (<= (get-in event-weight-limits [(:event row) cls])
+                                (:weight row)))))
               (process-row
                 "open"
                 (assoc
@@ -1090,7 +1094,10 @@
                                           :weight (:weight row)
                                           :distance-inches (:distance_inches row)
                                           :clock-minutes (:clock_minutes row)}
-                    bests weights))))))
+                    bests weights)))
+
+              ;; presumably should be doing the same for womens/womens masters?
+              )))
         {})
       (x/transform
         [x/MAP-VALS
