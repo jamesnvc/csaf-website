@@ -856,7 +856,6 @@
                           event-top-weights)
              class-weight-limit (get-in event-weight-limits [event class])]
          (if (and best top-weight class-weight-limit)
-           ;; this formula is bizarre, but shrug
            (* 1000 (/ (+ (* 12 (- (float weight) class-weight-limit))
                          (float distance-inches))
                       (+ (* 12 (- (float top-weight) class-weight-limit))
