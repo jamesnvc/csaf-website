@@ -835,7 +835,8 @@
                   weight (<= (get-in event-weight-limits [event class]) (float weight)))
            (let [factor (/ (- (float (:distance-inches light-best))
                               (float (:distance-inches heavy-best)))
-                           (- 20 17))]
+                           (- 20 17))
+                 weight (min weight 21)]
              (-> (/ (+ (float distance-inches) (* (- factor 1) (- weight 17)))
                     (float (:distance-inches light-best)))
                  (* 1000)))
