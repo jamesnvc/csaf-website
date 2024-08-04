@@ -58,7 +58,7 @@
   ["braemar" "open" "sheaf" "caber" "lwfd" "hwfd" "lhmr" "hhmr" "wob"])
 
 (def classes-in-order
-  ["open" "masters" "lightweight" "juniors" "womens" "womensmasters" "amateurs"])
+  ["open" "masters" "lightweight" "juniors" "womens" "womensmaster" "amateurs"])
 
 (defn ->int
   [s]
