@@ -89,7 +89,9 @@
               (for [result (->> results (sort-by :game-results-placing/placing))]
                 [:tr
                  [:td {:tw "bg-white"}]
-                 [:td (:members/last-name result) ", " (:members/first-name result)]
+                 [:td
+                  [:a {:href (str "/athletes/" (:members/id result))}
+                   (:members/last-name result) ", " (:members/first-name result)]]
                  [:td (:game-results-placing/placing result)]
                  (for [event-name results/events-in-order
                        :when (or (not (get selected "filter-event"))
