@@ -772,7 +772,9 @@
 
 (def event-weight-limits
   {"braemar" { "open" 22 "masters" 22 "amateurs" 22 "juniors" 22 "womens" 12 "womensmaster" 12 "lightweight" 22}
-   "open"    { "open" 16 "masters" 16 "amateurs" 16 "juniors" 12 "womens" 8 "womensmaster" 8 "lightweight" 16}
+   ;; there's a bug in the old database, where juinor's weight limit wasn't being read properly.
+   ;; it's apparently supposed to be 12lb, but setting that breaks all prior scores...
+   "open"    { "open" 16 "masters" 16 "amateurs" 16 "juniors" 0 #_12 "womens" 8 "womensmaster" 8 "lightweight" 16}
    "wob"     { "open" 56 "masters" 42 "amateurs" 56 "juniors" 42 "womens" 28 "womensmaster" 21 "lightweight" 42}
    "hwfd"    { "open" 56 "masters" 42 "amateurs" 56 "juniors" 42 "womens" 28 "womensmaster" 21 "lightweight" 42}
    "lwfd"    { "open" 28 "masters" 28 "amateurs" 28 "juniors" 28 "womens" 14 "womensmaster" 14 "lightweight" 28}
