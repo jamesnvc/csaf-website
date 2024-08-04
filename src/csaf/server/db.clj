@@ -771,6 +771,7 @@
   )
 
 (def event-weight-limits
+  "Minimum weights for events by class"
   {"braemar" { "open" 22 "masters" 22 "amateurs" 22 "juniors" 22 "womens" 12 "womensmaster" 12 "lightweight" 22}
    ;; there's a bug in the old database, where juinor's weight limit wasn't being read properly.
    ;; it's apparently supposed to be 12lb, but setting that breaks all prior scores...
@@ -782,6 +783,18 @@
    "hhmr"    { "open" 22 "masters" 22 "amateurs" 22 "womens" 16 "womensmaster" 16 "lightweight" 22}
    "sheaf"   { "open" 16 "masters" 16 "amateurs" 16 "womens" 10 "womensmaster" 10 "lightweight" 16}})
 
+(def event-class-standards
+  "Womens master (and the other master's classes other than \"base\"
+  masters) have a set standard, rather than being based on a record."
+  {"braemar" {"womensmaster" {:distance (+ (* 36 12) 9) :weight 12}}
+   "open" {"womensmaster" {:distance (+ (* 47 12) 7) :weight 8}}
+   "wob" {"womensmaster" {:distance (+ (* 17 12) 6)} :weight 28}
+   "hwfd" {"womensmaster" {:distance (+ (* 42 12) 7)} :weight 28}
+   "lwfd" {"womensmaster" {:distance (+ (* 85 12) 2.5)} :weight 14}
+   "lhmr" {"womensmaster" {:distance (+ (* 100 12) 5)} :weight 12}
+   "hhmr" {"womensmaster" {:distance (+ (* 85 12) 7.5)} :weight 16}
+   "sheaf" {"womensmaster" {:distance (+ (* 34 12) 2)}} :weight 10})
+
 (defn score-for-result
   ([class {:keys [year result]}]
    (score-for-result
@@ -792,7 +805,6 @@
   ([class {:game-member-results/keys [event weight distance-inches clock-minutes]}
     event-records event-top-weights]
    (let [class (case class
-                 "womensmaster" "womens"
                  "amateurs" "open"
                  class)]
      (cond
@@ -814,8 +826,8 @@
                    mins
                    (- (* 12 60) mins))))))
 
-       (and weight (< (float weight)
-                      (get-in event-weight-limits [event class] ##Inf)))
+       (and weight
+            (< (float weight) (get-in event-weight-limits [event class] ##Inf)))
        0
 
        (and (= "open" class) (= "open" event))
@@ -843,23 +855,26 @@
            0))
 
        (and (not= "masters" class) (= "open" event))
-       (let [best (x/select-first
-                    [x/ALL
-                     (x/if-path [:class (x/pred= class)] x/STAY)
-                     (x/if-path [:event (x/pred= event)] x/STAY)]
-                    event-records)
-             top-weight (x/select-one
-                          [x/ALL
-                           (x/if-path [:class (x/pred= class)] x/STAY)
-                           (x/if-path [:event (x/pred= event)] x/STAY)
-                           :weight]
-                          event-top-weights)
+       (let [best-dist (or (get-in event-class-standards [event class :distance])
+                      (x/select-first
+                        [x/ALL
+                         (x/if-path [:class (x/pred= class)] x/STAY)
+                         (x/if-path [:event (x/pred= event)] x/STAY)
+                         :distance-inches]
+                        event-records))
+             top-weight (or (get-in event-class-standards [event class :weight])
+                            (x/select-one
+                              [x/ALL
+                               (x/if-path [:class (x/pred= class)] x/STAY)
+                               (x/if-path [:event (x/pred= event)] x/STAY)
+                               :weight]
+                              event-top-weights))
              class-weight-limit (get-in event-weight-limits [event class])]
-         (if (and best top-weight class-weight-limit)
+         (if (and best-dist top-weight class-weight-limit)
            (* 1000 (/ (+ (* 12 (- (float weight) class-weight-limit))
                          (float distance-inches))
                       (+ (* 12 (- (float top-weight) class-weight-limit))
-                         (float (:distance-inches best)))))
+                         (float best-dist))))
            0))
 
        ;; the old code has conditions for if the scoring method is
@@ -890,7 +905,8 @@
 
        :else
        (-> (/ (float distance-inches)
-              (or (some-> (x/select-first
+              (or (get-in event-class-standards [event class :distance])
+                  (some-> (x/select-first
                             [x/ALL
                              (x/if-path [:class (x/pred= class)] x/STAY)
                              (x/if-path [:event (x/pred= event)]
