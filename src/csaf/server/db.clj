@@ -442,6 +442,7 @@
                               (assoc result :calculated-score
                                      (score-for-result
                                        (:class row)
+                                       year
                                        result
                                        bests
                                        weights))))))
@@ -775,7 +776,7 @@
   {"braemar" { "open" 22 "masters" 22 "amateurs" 22 "juniors" 22 "womens" 12 "womensmaster" 12 "lightweight" 22}
    ;; there's a bug in the old database, where juinor's weight limit wasn't being read properly.
    ;; it's apparently supposed to be 12lb, but setting that breaks all prior scores...
-   "open"    { "open" 16 "masters" 16 "amateurs" 16 "juniors" 0 #_12 "womens" 8 "womensmaster" 8 "lightweight" 16}
+   "open"    { "open" 16 "masters" 16 "amateurs" 16 "juniors" 12 "womens" 8 "womensmaster" 8 "lightweight" 16}
    "wob"     { "open" 56 "masters" 42 "amateurs" 56 "juniors" 42 "womens" 28 "womensmaster" 21 "lightweight" 42}
    "hwfd"    { "open" 56 "masters" 42 "amateurs" 56 "juniors" 42 "womens" 28 "womensmaster" 21 "lightweight" 42}
    "lwfd"    { "open" 28 "masters" 28 "amateurs" 28 "juniors" 28 "womens" 14 "womensmaster" 14 "lightweight" 28}
@@ -798,15 +799,19 @@
 (defn score-for-result
   ([class {:keys [year result]}]
    (score-for-result
-     class
+     class year
      result
      (event-records-for-year-by-class year)
      (event-top-weights-for-year-by-class year)))
-  ([class {:game-member-results/keys [event weight distance-inches clock-minutes]}
+  ([class year {:game-member-results/keys [event weight distance-inches clock-minutes]}
     event-records event-top-weights]
    (let [class (case class
                  "amateurs" "open"
-                 class)]
+                 class)
+         class-weight-limit (if (and (= event "open") (= class "juniors")
+                                     (<= 2022 year 2023))
+                              0
+                              (get-in event-weight-limits [event class]))]
      (cond
        (or (nil? distance-inches) (nil? weight)
            (and (= "caber" event) (nil? clock-minutes))
@@ -826,8 +831,7 @@
                    mins
                    (- (* 12 60) mins))))))
 
-       (and weight
-            (< (float weight) (get-in event-weight-limits [event class] ##Inf)))
+       (and weight (< (float weight) (or class-weight-limit ##Inf)))
        0
 
        (and (= "open" class) (= "open" event))
@@ -844,7 +848,7 @@
                            (x/if-path [:weight (x/view float) (x/pred= 20.0)] x/STAY)]
                           event-records)]
          (if (and light-best heavy-best
-                  weight (<= (get-in event-weight-limits [event class]) (float weight)))
+                  weight (<= class-weight-limit (float weight)))
            (let [factor (/ (- (float (:distance-inches light-best))
                               (float (:distance-inches heavy-best)))
                            (- 20 17))
@@ -868,8 +872,7 @@
                                (x/if-path [:class (x/pred= class)] x/STAY)
                                (x/if-path [:event (x/pred= event)] x/STAY)
                                :weight]
-                              event-top-weights))
-             class-weight-limit (get-in event-weight-limits [event class])]
+                              event-top-weights))]
          (if (and best-dist top-weight class-weight-limit)
            (* 1000 (/ (+ (* 12 (- (float weight) class-weight-limit))
                          (float distance-inches))
@@ -1064,7 +1067,7 @@
                 (assoc
                   row :score
                   (score-for-result
-                    "masters"
+                    "masters" year
                     #:game-member-results{:event (:event row)
                                           :weight (:weight row)
                                           :distance-inches (:distance_inches row)
@@ -1081,7 +1084,7 @@
                 (assoc
                   row :score
                   (score-for-result
-                    "open"
+                    "open" year
                     #:game-member-results{:event (:event row)
                                           :weight (:weight row)
                                           :distance-inches (:distance_inches row)
