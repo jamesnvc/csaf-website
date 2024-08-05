@@ -364,6 +364,14 @@
   [#:game_results_placing{:game_instance_id 1653, :member_id 1600}]
 
   (merge-members! [12 #_551 1600])
+
+  ;; Theresa Siochowicz/Soichowicwz
+  (merge-members! [700 1562])
+  (jdbc/execute! @datasource ["update members set status = 'inactive' where id = 1562"])
+
+  ;; Ray Siochowicz
+  (merge-members! [16 1177])
+  (jdbc/execute! @datasource ["update members set status = 'inactive' where id = 1177"])
   )
 
 ;;; Games queries
@@ -1140,4 +1148,12 @@
 
   (prn (map :score (vals (get-in (rankings-for-year 2023)
                       [:open 958 :events]))))
+
+  (jdbc/execute!
+    @datasource
+    ["select status from members where last_name = 'Test'"])
+
+  (jdbc/execute!
+    @datasource
+    ["update members set status = 'inactive' where last_name = 'Test'"])
   )
