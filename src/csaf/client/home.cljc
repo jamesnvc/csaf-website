@@ -14,6 +14,7 @@
     [:p "csaf.ca is currently being brought over from its old host; please bear with us while we complete the process."]
     [:p "You can view " [:a {:href "/athletes" :tw styles/a-tw} "Individual results"]
      ", " [:a {:href "/games" :tw styles/a-tw} "Games history"]
+     ", " [:a {:href "/rankings" :tw styles/a-tw} "Rankings"]
      ", and " [:a {:href "/records" :tw styles/a-tw} "Records"]
      "."]
     [:p "The rest of the content will be back soon."]]
