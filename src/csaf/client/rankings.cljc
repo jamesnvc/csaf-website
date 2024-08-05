@@ -3,7 +3,8 @@
    [clojure.string :as string]
    [clojure.math :as math]
    [com.rpl.specter :as x]
-   [csaf.client.results :as results]))
+   [csaf.client.results :as results]
+   [csaf.client.styles :as styles]))
 
 (def ranking-events
   (x/setval
@@ -23,12 +24,12 @@
     (if (nil? year) "Current Year"
         year)]
    [:div {:tw "flex flex-row gap-4"}
-    [:a {:href (str "/rankings/" (current-year))} "Current Year"]
-    [:a {:href (str "/rankings/" (- (current-year) 1))} "Previous Year"]]
+    [:a {:href (str "/rankings/" (current-year)) :tw styles/a-tw} "Current Year"]
+    [:a {:href (str "/rankings/" (- (current-year) 1)) :tw styles/a-tw} "Previous Year"]]
    [:details [:summary "Other Years"]
     [:div {:tw "flex flex-col md:grid md:grid-cols-3"}
      (for [{:keys [year]} available-years]
-       [:a {:href (str "/rankings/" year)} year])]]
+       [:a {:href (str "/rankings/" year) :tw styles/a-tw} year])]]
    (for [cls results/classes-in-order
          :let [class-results (get rankings-by-class cls)]
          :when class-results]
@@ -58,7 +59,7 @@
           [:tr
            [:td (inc rank)]
            [:td
-            [:a {:href (str "/athletes/" (:members/id result))}
+            [:a {:href (str "/athletes/" (:members/id result)) :tw styles/a-tw}
              (:members/last-name result) ", " (:members/first-name result)]]
            [:td (/ (math/floor (* 10 (:score result))) 10)]
            (for [event ranking-events
