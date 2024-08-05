@@ -1023,7 +1023,7 @@
        and game_member_results.event <> 'braemar'
        and game_member_results.score > 0
        and game_member_results.class = any('{juniors, amateurs, womens, womensmaster, masters, open, lightweight}')
-     window wnd as (partition by game_member_results.member_id, game_member_results.event
+     window wnd as (partition by game_member_results.member_id, game_member_results.event, case when game_member_results.event = 'caber' then 1 else game_member_results.weight end
         order by score rows between unbounded preceding and unbounded following)
       ) union all (
        -- get open results for masters that have just reached 40 this year
