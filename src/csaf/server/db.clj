@@ -1079,11 +1079,7 @@
               ;; masters-age, get the best masters result
               ;; & re-score it as open, use if better
               ;; (but needs to be the correct weight?)
-              (and (= cls "masters")
-                   (or (nil? (get-in event-weight-limits [(:event row) cls]))
-                       (and (:weight row)
-                            (<= (get-in event-weight-limits [(:event row) cls])
-                                (:weight row)))))
+              (= cls "masters")
               (process-row
                 "open"
                 (assoc
