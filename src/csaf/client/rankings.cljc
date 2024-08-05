@@ -11,13 +11,24 @@
     x/NONE
     results/events-in-order))
 
+(defn current-year
+  []
+  #?(:clj (+ 1900 (.getYear (java.util.Date.)))
+     :cljs (+ 1900 (.getYear (js/Date.)))))
+
 (defn rankings-view
-  [{:keys [rankings-by-class year]}]
+  [{:keys [rankings-by-class year available-years]}]
   [:div
    [:h1 "Rankings for "
     (if (nil? year) "Current Year"
         year)]
-   [:a {:href "/rankings/2023"} "Previous Year"]
+   [:div {:tw "flex flex-row gap-4"}
+    [:a {:href (str "/rankings/" (current-year))} "Current Year"]
+    [:a {:href (str "/rankings/" (- (current-year) 1))} "Previous Year"]]
+   [:details [:summary "Other Years"]
+    [:div {:tw "flex flex-col md:grid md:grid-cols-3"}
+     (for [{:keys [year]} available-years]
+       [:a {:href (str "/rankings/" year)} year])]]
    (for [cls results/classes-in-order
          :let [class-results (get rankings-by-class cls)]
          :when class-results]

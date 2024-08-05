@@ -144,7 +144,8 @@
        :headers {"Content-Type" "text/html; charset=utf-8"}
        :body (-> (rankings/rankings-view
                    {:rankings-by-class
-                    (db/rankings-for-year (+ 1900 (.getYear (java.util.Date.))))})
+                    (db/rankings-for-year (+ 1900 (.getYear (java.util.Date.))))
+                    :available-years (db/available-years-for-records)})
                  (layout/layout (logged-in-user req))
                  page)})]
 
@@ -155,7 +156,8 @@
        :body (let [year (->int (get-in req [:params :year]))]
                (-> (rankings/rankings-view
                      {:rankings-by-class (db/rankings-for-year year)
-                      :year year})
+                      :year year
+                      :available-years (db/available-years-for-records)})
                    (layout/layout (logged-in-user req))
                    page))})]
 
