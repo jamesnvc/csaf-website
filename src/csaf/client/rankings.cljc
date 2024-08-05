@@ -27,7 +27,7 @@
        (string/capitalize cls)]
 
       [:table
-       [:thead
+       [:thead {:tw "sticky top-0"}
         [:tr
          [:th {:rowSpan 2} "Rank"]
          [:th {:rowSpan 2} "Athlete"]
