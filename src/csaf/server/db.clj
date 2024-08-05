@@ -1049,8 +1049,9 @@
        and game_member_results.event <> 'sheaf'
        and game_member_results.event <> 'braemar'
        and game_member_results.score > 0
-       and game_member_results.class = 'open'
-     window wnd as (partition by game_member_results.member_id, game_member_results.event
+       and game_member_results.class = any('{open, womens}')
+     window wnd as (partition by game_member_results.member_id, game_member_results.event,
+          case when game_member_results.event = 'caber' then 1 else game_member_results.weight end
         order by score rows between unbounded preceding and unbounded following))"
          year year year year year year])
       (reduce
@@ -1078,7 +1079,6 @@
               ;; for the open class, if athlete is also
               ;; masters-age, get the best masters result
               ;; & re-score it as open, use if better
-              ;; (but needs to be the correct weight?)
               (= cls "masters")
               (process-row
                 "open"
@@ -1092,7 +1092,31 @@
                                           :clock-minutes (:clock_minutes row)}
                     bests weights)))
 
-              ;; presumably should be doing the same for womens/womens masters?
+              (and (= cls "womens") (:masters_age row))
+              (process-row
+                "womensmaster"
+                (assoc
+                  row :score
+                  (score-for-result
+                    "womensmaster" year
+                    #:game-member-results{:event (:event row)
+                                          :weight (:weight row)
+                                          :distance-inches (:distance_inches row)
+                                          :clock-minutes (:clock_minutes row)}
+                    bests weights)))
+
+              (= cls "womensmaster")
+              (process-row
+                "womens"
+                (assoc
+                  row :score
+                  (score-for-result
+                    "womens" year
+                    #:game-member-results{:event (:event row)
+                                          :weight (:weight row)
+                                          :distance-inches (:distance_inches row)
+                                          :clock-minutes (:clock_minutes row)}
+                    bests weights)))
               )))
         {})
       (x/transform
