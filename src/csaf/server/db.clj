@@ -636,6 +636,7 @@
               :weight (:weight event-result)
               :score (score-for-result
                        (:class result)
+                       year
                        #:game-member-results{:event event
                                              :weight (:weight event-result)
                                              :distance-inches (:distance-inches event-result)
