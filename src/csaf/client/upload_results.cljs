@@ -83,7 +83,7 @@
   [:div {:tw "flex flex-col"}
    [:h2 "Score Sheets"]
 
-   (when (= "admin" (:members/site-code (:logged-in-user @app-state)))
+   (when ((:roles (:logged-in-user @app-state)) "admin")
      [admin-view])
 
    [:ul

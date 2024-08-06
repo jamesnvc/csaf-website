@@ -190,7 +190,7 @@
                           :logged-in-user user
                           :members (db/all-members)
                           :games (db/all-games-names)}
-                   (= "admin" (:members/site-code user))
+                   ((db/member-roles user-id) :admin)
                    (assoc :submitted-sheets
                           (db/submitted-score-sheets)))})
         {:status 403}))]

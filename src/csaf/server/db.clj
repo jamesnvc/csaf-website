@@ -129,12 +129,16 @@
 
 (defn member
   [id]
-  (jdbc/execute-one!
-    @datasource
-    ["select * from members where id = ?" id]
-    jdbc/snake-kebab-opts))
+  (-> (jdbc/execute-one!
+        @datasource
+        ["select members.*, jsonb_agg(members_roles.role) as roles from members
+     join members_roles on members.id = members_roles.member_id
+     where id = ? group by members.id" id]
+        jdbc/snake-kebab-opts)
+      (update :roles set)))
 
 (comment
+  (member 1442)
   #_(jdbc/execute!
     @datasource
     ["update members set site_code = 'admin'
