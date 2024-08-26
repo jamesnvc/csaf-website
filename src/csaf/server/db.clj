@@ -339,9 +339,11 @@
         where member_id = any(ARRAY[?]);
       update game_results_placing set member_id = ?
         where member_id = any(ARRAY[?]);
+      update members set status = 'inactive' where id = any(ARRAY[?]);
       commit;"
      primary-member-id (->pg-ints other-member-ids)
      primary-member-id (->pg-ints other-member-ids)
+     (->pg-ints other-member-ids)
      ]))
 
 (comment
@@ -376,6 +378,9 @@
   ;; Ray Siochowicz
   (merge-members! [16 1177])
   (jdbc/execute! @datasource ["update members set status = 'inactive' where id = 1177"])
+
+  ;; Kaitlyn Clark
+  (merge-members! [1160 1602])
   )
 
 ;;; Games queries
