@@ -398,7 +398,7 @@
 
 (defn games-history
   [{:keys [year classes event]}]
-  (let [bests (event-records-for-year-by-class year)
+  (let [#_#_#_#_bests (event-records-for-year-by-class year)
         weights (event-top-weights-for-year-by-class year)]
     (->>
       (jdbc/plan
