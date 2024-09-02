@@ -154,6 +154,16 @@
     ["select * from members where site_code = 'admin'"])
   )
 
+(defn create-admin!
+  [{:keys [login password first-name last-name]}]
+  (jdbc/execute!
+    @datasource
+    ["with new_member as (
+       insert into members (first_name, last_name, login, password_hash, class, status)
+       values (?, ?, ?, ?, 'unknown', 'inactive') returning *)
+      insert into members_roles (member_id, role) select id, 'admin' from new_member;"
+     first-name last-name login (bcrypt/encrypt password)]))
+
 (comment
   (member 958)
   (jdbc/execute!
