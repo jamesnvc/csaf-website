@@ -207,6 +207,19 @@
                        (results/display-weight weight)]
                       (results/display-distance distance-inches)))])])]])))]])
 
+(def default-sheet-header
+  [["Name" "Country" "Class" "Placing"
+    "BRAE_feet" "BRAE_inches" "BRAE_weight"
+    "STON_feet" "STON_inches" "STON_weight"
+    "SHF_feet" "SHF_inches" "SHF_weight"
+    "CABR" "CABR_weight" "CABR_length"
+    "LWFD_feet" "LWFD_inches" "LWFD_weight"
+    "HWFD_feet" "HWFD_inches" "HWFD_weight"
+    "LHMR_feet" "LHMR_inches" "LHMR_weight"
+    "HHMR_feet" "HHMR_inches" "HHMR_weight"
+    "WOB_feet" "WOB_inches" "WOB_weight"]
+   ])
+
 (defn sheet-view
   []
   (r/with-let [dt-formatter (js/Intl.DateTimeFormat. js/undefined #js {:timeZone "UTC"})
@@ -230,6 +243,11 @@
                                     [(str last-name ", " first-name) id]))
                              (@app-state :members))]
       (when (nil? @last-saved) (reset! last-saved sheet))
+      (when (empty? (:score-sheets/data sheet))
+        (swap! app-state assoc-in
+               [(if (:admin-view @app-state) :submitted-sheets :score-sheets)
+                (:active-sheet @app-state) :score-sheets/data]
+               default-sheet-header))
       [:div {:tw "flex flex-col gap-3"}
        [:a {:href "/members"
             :on-click (fn [e] (.preventDefault e)
@@ -332,7 +350,15 @@
             [:li "Masters"]
             [:li "Womens"]
             [:li "Womensmaster"]]]
-          [:dt "\"Event code\", e.g. WOB, BRAE"]
+          [:dt "Placing"] [:dd "Number indicating where athlete placed"]
+          [:dt "\"Event code\"_feet, \"Event code\"_inches, e.g. WOB_feet, WOB_inches"]
+          [:dd "The distance for the event. Event codes are: "
+           [:ul {:tw "list-disc ml-4"}
+            (for [event results/events-in-order
+                  :let [code (results/abbrev-event-name event)]]
+              ^{:key code}
+              [:li code])]]
+          [:dt "(alternative) \"Event code\", e.g. WOB, BRAE"]
           [:dd "The distance for the event in the format feet'inches\" (e.g. 42'2\"), "
            "or clock score for caber in the format hour:minutes (e.g. 11:30). Codes are:"
            [:ul {:tw "list-disc ml-4"}
@@ -402,7 +428,15 @@
                                    :read-only? (not editable?)
                                    :path (conj partial-path (x/nthpath 0)
                                                (x/nthpath cidx))
-                                   :save-changes! save-changes!}]])]])
+                                   :save-changes! save-changes!}]])
+               (when editable?
+                 [:th
+                  [:button
+                   {:on-click (fn [] (x/setval
+                                       (conj partial-path x/ALL x/AFTER-ELEM)
+                                       ""
+                                       app-state))}
+                       " + "]])]])
            [:tbody
             (for [[ridx row] (rest (map-indexed vector (:score-sheets/data sheet)))]
               ^{:key ridx}

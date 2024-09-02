@@ -112,8 +112,12 @@
                            abbrev-event-name)]
     (->> (reduce
            (fn [res evt]
-             (if (and (get row-keys evt)
-                      (not (string/blank? (get row-keys evt)))
+             (if (and (or (and (get row-keys evt)
+                               (not (string/blank? (get row-keys evt))))
+                          (and (get row-keys (str evt "_feet"))
+                               (get row-keys (str evt "_inches"))
+                               (not (string/blank?
+                                      (get row-keys (str evt "_feet")))) ))
                       (get row-keys (str evt "_weight"))
                       (not (string/blank? (get row-keys (str evt "_weight"))))
                       (not= 0 (->float (get row-keys (str evt "_weight")))))
@@ -123,7 +127,13 @@
                            (-> (assoc :clock-minutes (parse-clock-minutes (get row-keys evt)))
                                (assoc :distance-inches
                                       (parse-distance (get row-keys "cabr_length"))))
-                           (not= evt "cabr")
+
+                           (and (not= evt "cabr") (get row-keys (str evt "_feet")))
+                           (assoc :distance-inches
+                                  (+ (* 12 (->int (get row-keys (str evt "_feet"))))
+                                     (or (->float (get row-keys (str evt "_inches"))) 0)))
+
+                           (and (not= evt "cabr") (get row-keys evt))
                            (assoc :distance-inches (parse-distance (get row-keys evt)))))
                res))
            base
