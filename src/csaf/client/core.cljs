@@ -24,7 +24,7 @@
     {:method "get"
      :uri "/api/init-data"
      :on-success
-     (fn [{:keys [sheets games members logged-in-user submitted-sheets]}]
+     (fn [{:keys [sheets games members logged-in-user submitted-sheets pending-records]}]
        (swap! app-state
               assoc
               :score-sheets (into {}
@@ -38,7 +38,12 @@
        (when submitted-sheets
          (swap! app-state assoc :submitted-sheets
                 (into {} (map (fn [s] [(:score-sheets/id s) s]))
-                      submitted-sheets))))}))
+                      submitted-sheets)))
+       (when pending-records
+         (swap! app-state assoc :pending-records
+                (into {}
+                      (map (fn [r] [(:event-record-submissions/id r) r]))
+                      pending-records))))}))
 
 (defn login-view
   []

@@ -61,6 +61,16 @@
     (catch java.lang.NumberFormatException _
       nil)))
 
+(defn ->float [s]
+  (try
+    (Double/parseDouble s)
+    (catch java.lang.NumberFormatException _
+      nil)))
+
+(comment
+  (map ->float ["123.4" "123" "" "abc" ])
+  )
+
 (def class-names
   #{"juniors" "lightweight" "amateurs" "open" "masters" "womens" "womensmaster"})
 
@@ -113,6 +123,105 @@
                  (layout/layout (logged-in-user req))
                  page)})
     []]
+
+   [[:get "/records/submit"]
+    (fn [req]
+      (cond->
+          {:status 200
+           :headers {"Content-Type" "text/html; charset=utf-8"}
+           :body (-> (records/submit-record-view {:members (db/all-members)
+                                                  :message (get-in req [:session :flash])})
+                     (layout/layout (logged-in-user req))
+                     page)}
+        (some? (get-in req [:session :flash]))
+        (assoc :session (dissoc (req :session) :flash))))]
+
+   [[:post "/records/submit"]
+    (fn [req]
+      (let [data (get-in req [:params])
+            year (->int (:year data))
+            distance-feet (->int (:distance-feet data))
+            distance-inches (->float (:distance-inches data))
+            weight (->float (:weight data))]
+        (if (or (some nil? [year distance-feet distance-inches weight])
+                (string/blank? (:name data))
+                (not (contains? (set results/classes-in-order) (:class data)))
+                (not (contains? (disj (set results/events-in-order) "caber")
+                                (:event data))))
+          {:status 400
+           :headers {"Content-Type" "text/html; charset=utf-8"}
+           :body (-> (records/submit-record-view
+                       {:members (db/all-members)
+                        :error "Missing required data"
+                        :data data})
+                     (layout/layout (logged-in-user req))
+                     page)}
+          (do (db/submit-new-record-for-approval
+                {:class (:class data)
+                 :event (:event data)
+                 :athlete-name (:name data)
+                 :distance-inches (+ distance-inches (* 12 distance-feet))
+                 :weight weight
+                 :year year
+                 :comment (:comment data)})
+              {:status 303
+               :headers {"Location" "/records/submit"}
+               :session (assoc (:session req) :flash "Record submitted")}))))]
+
+   [[:get "/records/:id/approve"]
+    (fn [req]
+      (let [user-id (get-in req [:session :user-id])
+            submission (some-> (get-in req [:params :id])
+                               ->int
+                               (db/record-submission))]
+        (if (and user-id ((db/member-roles user-id) :admin) submission)
+          {:status 200
+           :headers {"Content-Type" "text/html; charset=utf-8"}
+           :body (-> (records/submit-record-view
+                       {:members (db/all-members)
+                        :data submission
+                        :approving? true})
+                     (layout/layout (logged-in-user req))
+                     page)}
+          {:status 403})))]
+
+   [[:post "/records/:id/approve"]
+    (fn [req]
+      (let [data (get-in req [:params])
+            id (->int (:id data))
+            year (->int (:year data))
+            distance-feet (->int (:distance-feet data))
+            distance-inches (->float (:distance-inches data))
+            weight (->float (:weight data))]
+        (if (or (some nil? [id year distance-feet distance-inches weight])
+                (string/blank? (:name data))
+                (not (contains? (set results/classes-in-order) (:class data)))
+                (not (contains? (disj (set results/events-in-order) "caber")
+                                (:event data))))
+          {:status 400
+           :headers {"Content-Type" "text/html; charset=utf-8"}
+           :body (-> (records/submit-record-view
+                       {:members (db/all-members)
+                        :error "Missing required data"
+                        :approving? true
+                        :approving true
+                        :data (some-> id (db/record-submission))})
+                     (layout/layout (logged-in-user req))
+                     page)}
+          (do
+            ;; passing data in again to allow editing. Does this make sense?
+            ;; should we also edit the submission?
+            (db/submit-new-record!
+              {:class (:class data)
+               :event (:event data)
+               :athlete-name (:name data)
+               :distance-inches (+ distance-inches (* 12 distance-feet))
+               :weight weight
+               :year year
+               :comment (:comment data)})
+            (db/approve-submission! id)
+            {:status 303
+             :headers {"Location" "/members"}}))))]
 
    [[:get "/games"]
     (fn [{{:strs [filter-year class filter-event]} :query-params :as req}]
@@ -191,8 +300,16 @@
                           :members (db/all-members)
                           :games (db/all-games-names)}
                    ((db/member-roles user-id) :admin)
-                   (assoc :submitted-sheets
-                          (db/submitted-score-sheets)))})
+                   (-> (assoc :submitted-sheets
+                              (db/submitted-score-sheets))
+                       (assoc :pending-records
+                              (->> (db/record-submissions)
+                                   (x/transform
+                                     [x/ALL
+                                      (x/multi-path
+                                        :event-record-submissions/weight
+                                        :event-record-submissions/distance-inches)]
+                                     float)))))})
         {:status 403}))]
 
    [[:post "/api/score-sheets/new"]

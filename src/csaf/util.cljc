@@ -10,3 +10,8 @@
   [x]
   #?(:cljs (js/isNaN x)
      :clj (Double/isNaN x)))
+
+(defn current-year
+  []
+  #?(:clj (+ 1900 (.getYear (java.util.Date.)))
+     :cljs (+ 1900 (.getYear (js/Date.)))))

@@ -12,7 +12,7 @@
   (when (some? dist-inches)
     (str (?> (int (/ (float dist-inches) 12)) zero? (constantly "") #(str % "′"))
          (?> (mod dist-inches 12) zero? (constantly "")
-             #?(:cljs #(str % "″")
+             #?(:cljs #(str (.toFixed % 2) "″")
                 :clj (fn [x]
                        (if (float= x (int x))
                          (format "%d″" (int x))

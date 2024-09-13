@@ -59,28 +59,50 @@
                        vals (filter (filter (fn [{:keys [status]}] (= "complete" status)))))
         approved (->> @app-state :submitted-sheets
                        vals (filter (filter (fn [{:keys [status]}] (= "approved" status)))))]
-    [:div.admin
-     [:h1 "Admin"]
+    [:div.admin {:tw "flex flex-col gap-4"}
+     [:h1 {:tw "text-xl"} "Admin"]
+     (when (seq (:pending-records @app-state))
+       [:div
+        [:h2 {:tw "text-lg"} "Pending Records"]
+        [:ul (doall
+               (for [record (vals (:pending-records @app-state))
+                     :let [id (:event-record-submissions/id record)]]
+                 ^{:key id}
+                 [:li
+                  [:a {:href (str "/records/" id "/approve")}
+                   (string/capitalize (:event-record-submissions/class record))
+                   " "
+                   (results/display-event-name (:event-record-submissions/event record))
+                   " Record by "
+                   (:event-record-submissions/athlete-name record)
+                   [:span {:tw "text-sm text-gray-400"}
+                    (results/display-distance
+                      (:event-record-submissions/distance-inches record))
+                    " "
+                    (results/display-weight
+                      (:event-record-submissions/weight record))]]]))]])
      (when (seq submitted)
-       [:<>
-        [:h2 "Submitted, Pending Approval"]
+       [:div
+        [:h2 {:tw "text-lg"} "Games Submitted, Pending Approval"]
         [:ul
          (doall
            (for [sheet (->> submitted (sort-by :score-sheets/created-at))]
              ^{:key (:score-sheets/id sheet)}
              [admin-sheet-item-view sheet]))]])
      (when (seq approved)
-       [:<>
-        [:h2 "Approved & Saved"]
+       [:div
+        [:h2 {:tw "text-lg"} "Games Approved & Saved"]
         [:ul
          (doall
            (for [sheet (->> approved (sort-by :score-sheets/created-at))]
              ^{:key (:score-sheets/id sheet)}
-             [admin-sheet-item-view sheet]))]])]))
+             [admin-sheet-item-view sheet]))]])
+
+     [:hr ]]))
 
 (defn select-sheet-view
   []
-  [:div {:tw "flex flex-col"}
+  [:div {:tw "flex flex-col gap-4"}
    [:h2 "Score Sheets"]
 
    (when (some-> (:logged-in-user @app-state) :roles (contains? "admin"))
@@ -120,7 +142,10 @@
                  "complete" "Awaiting Approval"
                  "approved" "Approved")]]]))]
    [:button {:on-click (fn [] (add-sheet!))}
-    "Add Games Results"]])
+    "Add Games Results"]
+
+   [:h2 "Records"]
+   [:a {:href "/records/submit"} "Add New Record"]])
 
 (defn field-view
   [opts]

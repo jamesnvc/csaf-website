@@ -197,4 +197,19 @@ create table if not exists event_records (
   "should_display" boolean not null default false
 );
 
+create table if not exists event_record_submissions (
+  "id" serial primary key,
+  "class" membership_class_code not null,
+  "event" game_event_type not null,
+  -- in the old DB, records are just athlete names, not linked to member records...
+  -- "athlete_id" integer not null references members(id),
+  "athlete_name" text not null,
+  -- No records for caber
+  "distance_inches" numeric(8,1) not null,
+  "weight" numeric(8,2) not null,
+  "year" integer not null,
+  "comment" text,
+  "record_approved" boolean -- nullable
+);
+
 COMMIT;

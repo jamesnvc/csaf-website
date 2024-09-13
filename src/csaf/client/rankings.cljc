@@ -4,18 +4,14 @@
    [clojure.math :as math]
    [com.rpl.specter :as x]
    [csaf.client.results :as results]
-   [csaf.client.styles :as styles]))
+   [csaf.client.styles :as styles]
+   [csaf.util :refer [current-year]]))
 
 (def ranking-events
   (x/setval
     [x/ALL (x/pred #{"braemar" "sheaf"})]
     x/NONE
     results/events-in-order))
-
-(defn current-year
-  []
-  #?(:clj (+ 1900 (.getYear (java.util.Date.)))
-     :cljs (+ 1900 (.getYear (js/Date.)))))
 
 (defn rankings-view
   [{:keys [rankings-by-class year available-years]}]

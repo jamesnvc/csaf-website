@@ -165,6 +165,11 @@
      first-name last-name login (bcrypt/encrypt password)]))
 
 (comment
+  (create-admin!
+    {:first-name "James"
+     :last-name "Cash"
+     :login "jamesnvc"
+     :password "foobar"})
   (member 958)
   (jdbc/execute!
     @datasource
@@ -741,6 +746,58 @@
                            (fnil conj []))))
          {})))
 
+(defn submit-new-record-for-approval
+  [{:keys [class event athlete-name distance-inches weight year comment]}]
+  (jdbc/execute!
+    @datasource
+    ["insert into event_record_submissions
+      (\"class\", event, athlete_name, distance_inches, weight, year, comment)
+      values (
+          ?::membership_class_code, ?::game_event_type, ?, ?, ?, ?, ?)"
+     class event athlete-name distance-inches weight year comment]))
+
+(defn record-submissions
+  []
+  (jdbc/execute!
+    @datasource
+    ["select * from event_record_submissions where record_approved is null"]
+    jdbc/snake-kebab-opts))
+
+(defn record-submission
+  [id]
+  (jdbc/execute-one!
+    @datasource
+    ["select * from event_record_submissions where id = ?" id]
+    jdbc/snake-kebab-opts))
+
+(defn approve-submission!
+  [id]
+  (jdbc/execute!
+    @datasource
+    ["update event_record_submissions set record_approved = true where id = ?"
+     id]))
+
+(defn submit-new-record!
+  [{:keys [class event athlete-name distance-inches weight year comment]}]
+  (jdbc/execute!
+    @datasource
+    ["insert into event_records
+      (\"canadian\", \"status\", \"should_display\",
+       \"class\", event, athlete_name, distance_inches, weight, year, comment)
+      values (true, 'verified', true,
+          ?::membership_class_code, ?::game_event_type, ?, ?, ?, ?, ?)"
+     class event athlete-name distance-inches weight year comment]))
+
+(comment
+  (jdbc/execute!
+    @datasource
+    ["select distinct status from event_records"])
+
+  (jdbc/execute!
+    @datasource
+    ["select * from event_records where status = 'unverified'"])
+  )
+
 
 (defn- event-records-for-year-by-class
   [year]
@@ -1157,6 +1214,20 @@
 
 (comment
 
+  (jdbc/execute!
+    @datasource
+    ["select distinct(country) from members order by country"])
+  [#:members{:country "American"} #:members{:country "Australia"} #:members{:country "Canada"} #:members{:country "Czech"} #:members{:country "England"} #:members{:country "France"} #:members{:country "Germany"} #:members{:country "Holland"} #:members{:country "New Zealand"} #:members{:country "Norway"} #:members{:country "Poland"} #:members{:country "SC"} #:members{:country "Scotland"} #:members{:country "U.S."} #:members{:country "USA"} #:members{:country "United States"} #:members{:country "United Status"} #:members{:country "Usa"} #:members{:country "usa"} #:members{:country nil}]
+
+  (jdbc/execute!
+    @datasource
+    ["update members set country = 'Canada' where country = any('{CA, CAN, canada}')"])
+  (jdbc/execute!
+    @datasource
+    ["update members set country = 'United States' where country = any('{American, U.S., USA, United Status, Usa, usa}')"])
+
+  (jdbc/execute! @datasource ["select 'june 7 2024'::date + '14 weeks'::interval "])
+
   (x/select
     [(x/keypath "masters" 12)
      ]
@@ -1176,4 +1247,8 @@
   (jdbc/execute!
     @datasource
     ["update members set status = 'inactive' where last_name = 'Test'"])
+
+  (jdbc/execute!
+    @datasource
+    ["select game_instances.date from game_instances join games on game_id = games.id where name like '%Pleasanton%'"])
   )

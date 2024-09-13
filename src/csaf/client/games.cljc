@@ -57,7 +57,7 @@
 (defn games-history-view
   [{:keys [available-years selected games]}]
   [:div {:tw "flex flex-col gap-4"}
-   [:h1 "COMPETITION HISTORY"]
+   [:h1 {:tw "uppercase"} "Competition History"]
 
    [games-history-filter-view selected available-years]
 
