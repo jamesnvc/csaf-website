@@ -396,6 +396,18 @@
 
   ;; Kaitlyn Clark
   (merge-members! [1160 1602])
+
+  ;; Ali Gaul
+  (merge-members! [1577 1425 1561])
+
+  ;; Amanda F. Walsh
+  (merge-members! [1203 1567 ])
+
+
+  ;; Test users
+  (jdbc/execute!
+    @datasource
+    ["update members set status = 'inactive' where id = any('{1531, 1532}')"])
   )
 
 ;;; Games queries
@@ -983,7 +995,7 @@
                            (x/if-path [:event (x/pred= event)] x/STAY)
                            :weight]
                           event-top-weights)
-             event-weight-limit (case class ("womens" "womensmasters") 18 22)]
+             event-weight-limit (case class ("womens" "womensmaster") 18 22)]
          (if (and best top-weight weight distance-inches
                   #_(<= event-weight-limit weight))
            (* 1000 (/ (+ (* 12 (- weight event-weight-limit))
@@ -991,6 +1003,11 @@
                       (+ (* 12 (- top-weight event-weight-limit))
                          (float best))))
            0))
+
+       (and (= class "womensmaster")
+            (#{"lwfd" "hwfd" "lhmr" "hhmr" "wob"} event)
+            (> weight (get-in event-weight-limits [event class])))
+       0
 
        :else
        (-> (/ (float distance-inches)

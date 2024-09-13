@@ -70,7 +70,9 @@
                   (some-> (:weight event-result) results/display-weight)
                   " "])
                (results/display-distance
-                 (:distance-inches event-result))]
+                 (:distance-inches event-result))
+               (when (= event "open")
+                 [:<> " " (some-> event-result :weight results/display-weight)])]
               [:td {:tw "text-xs"}
                (some-> (:score event-result)
                        math/round)]])])]]])])
