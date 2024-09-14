@@ -151,12 +151,15 @@
   [opts]
   (r/with-let [editing? (r/atom false)]
     (if (and @editing? (not (:read-only? opts)))
-      [:input.field {:default-value (:value opts)
-                     :auto-focus true
-                     :on-blur (fn [e]
-                                (x/setval (:path opts) (.. e -target -value) app-state)
-                                ((:save-changes! opts))
-                                (reset! editing? false))}]
+      [:input.field (cond->
+                        {:default-value (:value opts)
+                         :auto-focus true
+                         :on-blur (fn [e]
+                                    (x/setval (:path opts) (.. e -target -value) app-state)
+                                    ((:save-changes! opts))
+                                    (reset! editing? false))}
+                      (some? (:list opts))
+                      (assoc :list (:list opts)))]
       [:div.field {:on-click (fn [_] (reset! editing? true))}
        (:value opts)
        "\u00a0"])))
@@ -184,7 +187,7 @@
                        (group-by :class))]
       (doall
         (for [[class class-results] results]
-          ^{:key class}
+          ^{:key (or class "unknown")}
           [:<>
            [:thead
             [:tr
@@ -486,7 +489,8 @@
                                :read-only (not editable?)
                                :path (conj partial-path (x/nthpath ridx)
                                            (x/nthpath cidx))
-                               :save-changes! save-changes!}]])])
+                               :save-changes! save-changes!
+                               :list (when (= cidx name-idx) "athlete-names")}]])])
             (when (and editable? (seq (:score-sheets/data sheet)))
               [:tr
                [:td
@@ -497,6 +501,12 @@
                                         app-state)
                                       (save-changes!))}
                  " + "]]])]]])
+
+       [:datalist {:id "athlete-names"}
+        (doall
+          (for [[member-name id] member-names]
+            ^{:key id}
+            [:option {:value member-name}]))]
 
        [sheet-preview-view sheet member-names]
 
