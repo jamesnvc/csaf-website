@@ -126,15 +126,17 @@
 
    [[:get "/records/submit"]
     (fn [req]
-      (cond->
-          {:status 200
-           :headers {"Content-Type" "text/html; charset=utf-8"}
-           :body (-> (records/submit-record-view {:members (db/all-members)
-                                                  :message (get-in req [:session :flash])})
-                     (layout/layout (logged-in-user req))
-                     page)}
-        (some? (get-in req [:session :flash]))
-        (assoc :session (dissoc (req :session) :flash))))]
+      (if (some? (logged-in-user req))
+        (cond->
+            {:status 200
+             :headers {"Content-Type" "text/html; charset=utf-8"}
+             :body (-> (records/submit-record-view {:members (db/all-members)
+                                                    :message (get-in req [:session :flash])})
+                       (layout/layout (logged-in-user req))
+                       page)}
+          (some? (get-in req [:session :flash]))
+          (assoc :session (dissoc (req :session) :flash)))
+        {:status 401}))]
 
    [[:post "/records/submit"]
     (fn [req]
