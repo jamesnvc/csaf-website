@@ -1259,6 +1259,16 @@
 
   (jdbc/execute!
     @datasource
+    ["select * from members where id = 1203"])
+  ;; Amanda needs masters first date set
+  (jdbc/execute!
+    @datasource
+    ["select min(date) from game_instances
+join game_member_results on game_instance = game_instances.id
+where member_id = 1203 and class = 'womensmaster'"])
+
+  (jdbc/execute!
+    @datasource
     ["select status from members where last_name = 'Test'"])
 
   (jdbc/execute!
@@ -1268,4 +1278,22 @@
   (jdbc/execute!
     @datasource
     ["select game_instances.date from game_instances join games on game_id = games.id where name like '%Pleasanton%'"])
+  )
+
+(defn set-first-masters-date!
+  [member-id]
+  (let [{:keys [first-date]} (jdbc/execute-one!
+                               @datasource
+                               ["select min(date) as \"first-date\" from game_instances
+                                 join game_member_results on game_instance = game_instances.id
+                                 where member_id = ? and class = any('{masters, womensmaster}')"
+                                member-id])]
+    (prn "Setting first masters date to" first-date)
+    (jdbc/execute!
+      @datasource
+      ["update members set master_first_date = ? where id = ? and master_first_date is null"
+       first-date member-id])))
+
+(comment
+  (set-first-masters-date! 1203)
   )
