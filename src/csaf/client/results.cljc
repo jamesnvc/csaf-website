@@ -32,6 +32,12 @@
                   (?> (int (/ clock-minutes 60)) zero? (constantly 12))
                   (mod clock-minutes 60))))
 
+(defn display-class
+  [cls]
+  (case cls
+    "womensmaster" "Womens Master"
+    (string/capitalize cls)))
+
 (def display-event-name
   {"braemar" "Braemar Stone"
    "open" "Open Stone"

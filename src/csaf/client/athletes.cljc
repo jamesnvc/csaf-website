@@ -61,7 +61,7 @@
             :let [result (get-in member [:member/prs event-name])]]
         [:tr
          [:td (display-event-name event-name)]
-         [:td (some-> (:class result) string/capitalize)]
+         [:td (some-> (:class result) results/display-class)]
          [:td {:tw "text-sm"} (:games/name result)]
          [:td
           (->> [(when (= event-name "caber")

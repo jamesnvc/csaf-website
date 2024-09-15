@@ -32,7 +32,7 @@
      ^{:key cls}
      [:div
       [:h2 {:tw "text-center text-lg text-gray-500 font-smallcaps"}
-       (string/capitalize cls)]
+       (results/display-class cls)]
 
       [:table
        [:thead {:tw "sticky top-0"}
