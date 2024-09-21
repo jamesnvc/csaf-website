@@ -496,6 +496,36 @@
 (comment
 
   (time (count (games-history {:year 2023 :classes ["lightweight" "masters"]})))
+  (jdbc/execute!
+    @datasource
+    ["create index if not exists game_results_placing_pkey2 on game_results_placing (game_instance_id, member_id)"])
+
+  (jdbc/execute!
+    @datasource
+    ["create index if not exists game_instances_date_year_idx on game_instances (extract(\"year\" from \"date\"))"])
+
+  (->> (jdbc/execute!
+    @datasource
+    [(str "explain analyze ("
+          "select games.id as games_id,
+                   games.name,
+                   to_char(game_instances.date, 'YYYY-MM-DD') as date,
+                   game_results_placing.placing,
+                   members.id, members.first_name, members.last_name,
+                   game_member_results.event, game_member_results.distance_inches,
+                      game_member_results.clock_minutes, game_member_results.weight,
+                      game_member_results.class, game_member_results.score
+                  from game_instances
+                  join games on games.id = game_instances.game_id
+                  join game_member_results on game_member_results.game_instance = game_instances.id
+                  join game_results_placing on game_results_placing.game_instance_id = game_instances.id and game_results_placing.member_id = game_member_results.member_id
+                  join members on game_member_results.member_id = members.id
+                  where true and extract(\"year\" from date) = 2023"
+          ")")])
+       (mapcat vals)
+       (string/join "\n")
+       println)
+
   )
 
 (defn add-new-game!

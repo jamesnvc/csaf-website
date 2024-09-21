@@ -109,6 +109,8 @@ create table if not exists game_instances (
    "date" date not null,
    "events_list" text
 );
+create index if not exists game_instances_date_year_idx
+  on game_instances (extract("year" from "date"));
 
 do $$
   begin
@@ -143,6 +145,7 @@ create table if not exists game_member_results (
 
 create index if not exists game_member_results_member_idx on game_member_results(member_id, game_instance);
 create index if not exists game_member_results_game_idx on game_member_results(game_instance, member_id);
+create index if not exists game_member_results_instance_idx on game_member_results(game_instance);
 
 create table if not exists game_results_placing (
    "member_id" integer not null references members(id),
@@ -151,6 +154,8 @@ create table if not exists game_results_placing (
    "class" membership_class_code not null,
    primary key(member_id, game_instance_id)
 );
+create index if not exists game_results_placing_pkey2
+  on game_results_placing (game_instance_id, member_id);
 
 do $$
   begin
