@@ -36,4 +36,6 @@
 
   :profiles {:uberjar {:aot :all
                        :prep-tasks [["omni" "compile"]
-                                    "compile"]}})
+                                    "compile"]}
+             :dev {:dependencies [["com.clojure-goes-fast/clj-async-profiler" "1.2.0"]]
+                   :jvm-opts ["-Djdk.attach.allowAttachSelf"]}})

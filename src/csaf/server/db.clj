@@ -453,8 +453,7 @@
                  " and game_member_results.event = cast(? as game_event_type)"))]
           (some? year) (conj year)
           (seq classes) (conj (into-array java.lang.String classes))
-          (some? event) (conj event))
-        jdbc/snake-kebab-opts)
+          (some? event) (conj event)))
       (reduce
         (fn [acc row]
           (cond-> acc
@@ -495,7 +494,12 @@
 
 (comment
 
-  (time (count (games-history {:year 2023 :classes ["lightweight" "masters"]})))
+  (require '[clj-async-profiler.core :as prof])
+  (prof/profile (games-history {:year 2023}))
+  (prof/serve-ui 8080)
+
+  (time (count (games-history {:year 2023})))
+
   (jdbc/execute!
     @datasource
     ["create index if not exists game_results_placing_pkey2 on game_results_placing (game_instance_id, member_id)"])
