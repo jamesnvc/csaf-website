@@ -217,4 +217,9 @@ create table if not exists event_record_submissions (
   "record_approved" boolean -- nullable
 );
 
+create table if not exists pages (
+   "title" text not null primary key,
+   "content" text not null default ''
+);
+
 COMMIT;

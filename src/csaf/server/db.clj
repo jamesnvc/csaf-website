@@ -1331,3 +1331,35 @@ where member_id = 1203 and class = 'womensmaster'"])
 (comment
   (set-first-masters-date! 1203)
   )
+
+;; pages
+
+(defn create-page!
+  [title]
+  (jdbc/execute!
+    @datasource
+    ["insert into pages (title) values (?)" title]))
+
+(defn load-page
+  [title]
+  (jdbc/execute-one!
+    @datasource
+    ["select * from pages where title = ?" title]))
+
+(defn set-page-content!
+  [title content]
+  (jdbc/execute!
+    @datasource
+    ["update pages set content = ? where title = ?"
+     content title]))
+
+(defn all-page-titles
+  []
+  (jdbc/execute!
+    @datasource
+    ["select title from pages"]))
+
+(comment
+  (load-page "foo")
+  (create-page! "foo")
+  )

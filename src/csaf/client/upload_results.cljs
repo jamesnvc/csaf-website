@@ -61,6 +61,9 @@
                        vals (filter (filter (fn [{:keys [status]}] (= "approved" status)))))]
     [:div.admin {:tw "flex flex-col gap-4"}
      [:h1 {:tw "text-xl"} "Admin"]
+
+     [:a {:href "/admin/pages"} "Edit Pages"]
+
      (when (seq (:pending-records @app-state))
        [:div
         [:h2 {:tw "text-lg"} "Pending Records"]
@@ -89,6 +92,7 @@
            (for [sheet (->> submitted (sort-by :score-sheets/created-at))]
              ^{:key (:score-sheets/id sheet)}
              [admin-sheet-item-view sheet]))]])
+
      (when (seq approved)
        [:div
         [:h2 {:tw "text-lg"} "Games Approved & Saved"]

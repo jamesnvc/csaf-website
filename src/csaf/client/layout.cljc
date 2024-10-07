@@ -23,21 +23,21 @@
          [:div {:tw details-content-tw}
           [:ul {:tw "list-none p-2 w-full"}
           [:li [:a {:tw a-tw :href "/athletes"} "Athlete Bios"]]
-          [:li [:a {:tw a-tw :href "/"} "Champions"]]
-          [:li [:a {:tw a-tw :href "/"} "Hall of Fame"]]]]]
+          [:li [:a {:tw a-tw :href "/page/champions"} "Champions"]]
+          [:li [:a {:tw a-tw :href "/page/hall-of-fame"} "Hall of Fame"]]]]]
         [:details {:open true :tw details-tw}
          [:summary {:tw a-tw :href "/"}
           "Competitions"]
          [:div {:tw details-content-tw}
           [:ul {:tw "list-none p-2 w-full"}
-          [:li [:a {:tw a-tw :href "/"} "CSAF Rules"]]
-          [:li [:a {:tw a-tw :href "/"} "Games Setup"]]
+          [:li [:a {:tw a-tw :href "/page/rules"} "CSAF Rules"]]
+          [:li [:a {:tw a-tw :href "/page/setup"} "Games Setup"]]
           [:li [:a {:tw a-tw :href "/games"} "View Games History"]]
           [:li [:a {:tw a-tw :href "/rankings"} "Rankings"]]
           [:li [:a {:tw a-tw :href "/records"} "Records"]]]]]
-        [:a {:tw a-tw :href "/"} "Information"]
-        [:a {:tw a-tw :href "/"} "About CSAF"]
-        [:a {:tw a-tw :href "/"} "Contact Us"]])]]
+        [:a {:tw a-tw :href "/page/information"} "Information"]
+        [:a {:tw a-tw :href "/page/about-csaf"} "About CSAF"]
+        [:a {:tw a-tw :href "/page/contact-us"} "Contact Us"]])]]
    [:div {:tw "flex-grow"} content]
    [:footer {:tw "self-end mx-4 flex flex-row gap-3 items-center"}
     [:a {:href "/members"} "Upload Results"]

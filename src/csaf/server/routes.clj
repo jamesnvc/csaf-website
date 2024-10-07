@@ -9,6 +9,7 @@
    [csaf.client.home]
    [csaf.client.athletes :as athletes]
    [csaf.client.games :as games]
+   [csaf.client.pages-editor :as pages-editor]
    [csaf.client.rankings :as rankings]
    [csaf.client.results :as results]
    [csaf.client.records :as records]
@@ -33,27 +34,32 @@
                 (x/setval :tw x/NONE))))))
 
 (defn page
-  [content]
-  (->> [:html {:lang "en"}
-        [:head
-         [:title "CSAF"]
-         [:meta {:name "viewport"
-                 :content "user-scalable=no, initial-scale=1, maximum-scale=1, minimum-scale=1, width=device-width"}]
-         (when (io/resource "public/manifest.webmanifest")
-           [:link {:rel "manifest" :href "/manifest.webmanifest"}])
-         (->> ["public/css/twstyles.css" "public/css/styles.css"]
-              (map (fn [path]
-                     (let [digest (crypto/sha256-file (io/resource path))
-                           digest-gz (crypto/sha256-file (io/resource (str path ".gz")))]
-                       [:link {:rel "stylesheet"
-                               :href (str (string/replace path "public" "") "?v=" digest)
-                               :media "screen"
-                               :integrity (->> [digest digest-gz]
-                                               (remove nil?)
-                                               (map (fn [d] (str "sha256-" d)))
-                                               (string/join " "))}]))))]
-        [:body [:div#app (tw->class content)]]]
-       (huff/page {:allow-raw true})))
+  ([content] (page content {}))
+  ([content opts]
+   (->> [:html {:lang "en"}
+         [:head
+          [:title "CSAF"]
+          [:meta {:name "viewport"
+                  :content "user-scalable=no, initial-scale=1, maximum-scale=1, minimum-scale=1, width=device-width"}]
+          (when (io/resource "public/manifest.webmanifest")
+            [:link {:rel "manifest" :href "/manifest.webmanifest"}])
+          (->> ["public/css/twstyles.css" "public/css/styles.css"]
+               (map (fn [path]
+                      (let [digest (crypto/sha256-file (io/resource path))
+                            digest-gz (crypto/sha256-file (io/resource (str path ".gz")))]
+                        [:link {:rel "stylesheet"
+                                :href (str (string/replace path "public" "") "?v=" digest)
+                                :media "screen"
+                                :integrity (->> [digest digest-gz]
+                                                (remove nil?)
+                                                (map (fn [d] (str "sha256-" d)))
+                                                (string/join " "))}]))))
+          (for [tag (opts :head)]
+            tag)]
+         [:body [:div#app (tw->class content)]
+          (for [tag (opts :after-body)]
+            tag)]]
+        (huff/page {:allow-raw true}))))
 
 (defn ->int [s]
   (try
@@ -369,4 +375,80 @@
       (when (get-in req [:session :user-id])
         {:status 200
          :body {:data (csv/read-csv (get-in req [:body-params :csv-text]))}}))]
+
+   [[:get "/admin/pages"]
+    (fn [req]
+      (let [user-id (get-in req [:session :user-id])]
+        (if (and user-id ((db/member-roles user-id) :admin))
+          {:status 200
+           :headers {"Content-Type" "text/html; charset=utf-8"}
+           :body (-> (pages-editor/pages-editor-view (db/all-page-titles))
+                     (layout/layout (logged-in-user req))
+                     page)}
+          {:status 403})))]
+
+   [[:post "/admin/pages"]
+    (fn [req]
+      (let [user-id (get-in req [:session :user-id])]
+        (if (and user-id ((db/member-roles user-id) :admin))
+          (let [title (get-in req [:params :title])]
+            (try
+              (db/create-page! title)
+              {:status 303
+               :headers {"Location" (str "/admin/pages/" title)}}
+              (catch org.postgresql.util.PSQLException _
+                {:status 303
+                 :headers {"Location" "/admin/pages"}
+                 :body (-> (pages-editor/pages-editor-view (db/all-page-titles))
+                           (layout/layout (logged-in-user req))
+                           page)})))
+          {:status 403})))]
+
+   [[:get "/admin/pages"]
+    (fn [req]
+      (let [user-id (get-in req [:session :user-id])]
+        (if (and user-id ((db/member-roles user-id) :admin))
+          {:status 200
+           :headers {"Content-Type" "text/html; charset=utf-8"}
+           :body (-> (pages-editor/pages-editor-view (db/all-page-titles))
+                     (layout/layout (logged-in-user req))
+                     page)}
+          {:status 403})))]
+
+   [[:get "/admin/pages/:title"]
+    (fn [req]
+      (let [title (get-in req [:params :title])
+            user-id (get-in req [:session :user-id])]
+        (if (and user-id ((db/member-roles user-id) :admin))
+          (if-let [loaded-page (db/load-page title)]
+            {:status 200
+             :headers {"Content-Type" "text/html; charset=utf-8"}
+             :body  (-> (pages-editor/page-editor-view {:title title
+                                                        :content (:pages/content loaded-page)})
+                        (layout/layout (logged-in-user req))
+                        (page {:head [[:link {:href "/css/quill-2.0.2-snow.css" :rel "stylesheet"}]]}))}
+            {:status 404})
+          {:status 403})))]
+
+   [[:post "/admin/pages/:title"]
+    (fn [req]
+      (let [title (get-in req [:params :title])
+            user-id (get-in req [:session :user-id])]
+        (if (and user-id ((db/member-roles user-id) :admin))
+          (if (some? (db/load-page title))
+            (do (db/set-page-content! title (get-in req [:params :content]))
+                {:status 303
+                 :headers {"Location" (str "/admin/pages/" title)}})
+            {:status 404})
+          {:status 403})))]
+
+   [[:get "/page/:page"]
+    (fn [req]
+      {:status 200
+       :headers {"Content-Type" "text/html; charset=utf-8"}
+       :body (-> (if-let [content (db/load-page (get-in req [:params :page]))]
+                   [:hiccup/raw-html (:pages/content content)]
+                   (csaf.client.home/home-view))
+                 (layout/layout (logged-in-user req))
+                 page)})]
    ])

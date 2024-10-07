@@ -19,4 +19,4 @@
      "."]
     [:p "The rest of the content will be back soon."]]
 
-   [:div "COMING EVENTS"]])
+   [:div #_"COMING EVENTS"]])
