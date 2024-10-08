@@ -77,6 +77,11 @@
     [:h1
      {:font-size "1.5rem"}]
 
+    [:a
+     {:color "rgba(153,27,27,1)"}
+     [:&:hover
+      {:color "rgba(252,165,165,1)"}]]
+
     [:ol {:list-style-type "decimal"}]
     [:ul {:list-style-type "disc"}]
     ["li > ol, li > ul"
