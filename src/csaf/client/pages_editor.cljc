@@ -30,7 +30,23 @@
     [:input {:type "submit" :value "Save"}]]
 
    [:script {:src "/js/quill-2.0.2.js"}]
-   [:script "const quill = new Quill('#editor', {
+   [:script "
+const Link = Quill.import('formats/link');
+class FixedLink extends Link {
+  static create(value) {
+    let node = super.create(value);
+    value = this.sanitize(value);
+    node.setAttribute('href', value);
+    node.removeAttribute('target');
+    if (!value.startsWith('http')) {
+      node.removeAttribute('rel');
+    }
+    console.log('creating link', value, node);
+    return node;
+  }
+}
+Quill.register(FixedLink);
+const quill = new Quill('#editor', {
  theme: 'snow',
  modules: {toolbar:  [
   [{ header: ['1', '2', '3', false] }],
