@@ -91,7 +91,9 @@
     (fn [req]
       {:status 200
        :headers {"Content-Type" "text/html; charset=utf-8"}
-       :body (-> (csaf.client.home/home-view)
+       :body (-> (if-let [content (db/load-page "home")]
+                   [:div.page [:hiccup/raw-html (:pages/content content)]]
+                   (csaf.client.home/home-view))
                  (layout/layout (logged-in-user req))
                  page)})]
 
