@@ -69,4 +69,17 @@
 
    [:.font-smallcaps
     {:font-variant "small-caps"}]
+
+   [:.page
+    {:margin "1.5rem"}
+    ["h1, h2, h3, h4, h5"
+     {:color "rgba(126, 126, 126)"}]
+    [:h1
+     {:font-size "1.5rem"}]
+
+    [:ol {:list-style-type "decimal"}]
+    [:ul {:list-style-type "disc"}]
+    ["li > ol, li > ul"
+     {:margin-inline-start "2rem"
+      :list-style-type "lower-alpha"}]]
    ])

@@ -447,7 +447,7 @@
       {:status 200
        :headers {"Content-Type" "text/html; charset=utf-8"}
        :body (-> (if-let [content (db/load-page (get-in req [:params :page]))]
-                   [:hiccup/raw-html (:pages/content content)]
+                   [:div.page [:hiccup/raw-html (:pages/content content)]]
                    (csaf.client.home/home-view))
                  (layout/layout (logged-in-user req))
                  page)})]
