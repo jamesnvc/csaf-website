@@ -8,7 +8,8 @@
    [:ul
     (doall
       (for [{:pages/keys [title]} pages]
-        [:a {:href (str "/admin/pages/" title)} title]))]
+        [:li [:a {:tw "block hover:bg-gray-200"
+                  :href (str "/admin/pages/" title)} title]]))]
 
    [:form {:method "post" :action "/admin/pages"}
     [:input {:type "text" :name "title" :required true :placeholder "title"
@@ -18,6 +19,7 @@
 (defn page-editor-view
   [{:keys [title content]}]
   [:div
+   [:a {:href "/admin/pages"} "Back"]
    [:h2 (str "Editing " title)]
 
    [:div#editor
