@@ -28,7 +28,14 @@
     [:input {:type "submit" :value "Save"}]]
 
    [:script {:src "/js/quill-2.0.2.js"}]
-   [:script "const quill = new Quill('#editor', {theme: 'snow'});
+   [:script "const quill = new Quill('#editor', {
+ theme: 'snow',
+ modules: {toolbar:  [
+  [{ header: ['1', '2', '3', false] }],
+  ['bold', 'italic', 'underline', 'link'],
+  [{ list: 'ordered' }, { list: 'bullet' }],
+  ['clean', 'image'],
+]}});
 const form = document.getElementById('editor-save-form');
 form.onsubmit = function(e) {
   e.preventDefault();
