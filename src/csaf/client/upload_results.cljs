@@ -56,7 +56,7 @@
 (defn admin-view
   []
   (let [submitted (->> @app-state :submitted-sheets
-                       vals (filter (fn [{:score-shetes/keys [status]}] (= "complete" status))))
+                       vals (filter (fn [{:score-sheets/keys [status]}] (= "complete" status))))
         approved (->> @app-state :submitted-sheets
                        vals (filter (fn [{:score-sheets/keys [status]}] (= "approved" status))))]
     [:div.admin {:tw "flex flex-col gap-4"}
