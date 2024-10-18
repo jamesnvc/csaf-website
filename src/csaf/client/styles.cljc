@@ -73,9 +73,19 @@
    [:.page
     {:margin "1.5rem"}
     ["h1, h2, h3, h4, h5"
-     {:color "rgba(126, 126, 126)"}]
+     {:color "rgba(126, 126, 126)"
+      :margin-top "1rem"}]
     [:h1
+     {:font-size "1.75rem"}]
+    [:h2
      {:font-size "1.5rem"}]
+    [:h3
+     {:font-size "1.25rem"}]
+    [:h4
+     {:font-size "1.125rem"}]
+
+    [:p
+     {:margin "1rem 0"}]
 
     [:a
      {:color "rgba(153,27,27,1)"}
