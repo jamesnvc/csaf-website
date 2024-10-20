@@ -35,7 +35,8 @@ do $$
         'open',
         'masters',
         'womens',
-        'womensmaster'
+        'womensmaster',
+        'womensyouth'
         );
     end if;
 end$$;

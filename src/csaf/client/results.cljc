@@ -64,7 +64,7 @@
   ["braemar" "open" "sheaf" "caber" "lwfd" "hwfd" "lhmr" "hhmr" "wob"])
 
 (def classes-in-order
-  ["open" "masters" "lightweight" "juniors" "womens" "womensmaster" "amateurs"])
+  ["open" "masters" "lightweight" "juniors" "womens" "womensmaster" "womensyouth" "amateurs"])
 
 (defn ->int
   [s]
@@ -90,7 +90,9 @@
    "womensmaster" "womensmaster"
    "womensmasters" "womensmaster"
    "womenmasters" "womensmaster"
-   "womenmaster" "womensmaster"})
+   "womenmaster" "womensmaster"
+   "youth female" "womensyouth"
+   "womensyouth" "womensyouth"})
 
 (defn parse-clock-minutes
   [s]

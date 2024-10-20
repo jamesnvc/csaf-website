@@ -105,6 +105,12 @@
     ["insert into members_roles (member_id, role)
       select id, site_code from members"]))
 
+(defn migrate-add-youth-classes
+  []
+  (jdbc/execute!
+    @datasource
+    ["alter type membership_class_code add value 'womensyouth'"]))
+
 ;;; member queries
 
 (defn authenticate-user
@@ -151,6 +157,11 @@
 
   (jdbc/execute!
     @datasource
+    ["insert into members_roles (member_id, role)
+      values (1473, 'admin')"])
+
+  (jdbc/execute!
+    @datasource
     ["select * from members where site_code = 'admin'"])
   )
 
@@ -175,6 +186,19 @@
     @datasource
     ["select * from members where first_name = 'Cash'"]
     )
+
+  (jdbc/execute!
+    @datasource
+    ["select login, id from members where login = 'AThompson'"])
+
+  (jdbc/execute!
+    @datasource
+    ["select login from members where site_code = 'admin'"])
+
+  (jdbc/execute!
+    @datasource
+    ["select members.login from members join members_roles on member_id = id
+      where role = 'admin'"])
   )
 
 (defn member-roles
@@ -618,6 +642,19 @@
      game-id date]
     jdbc/snake-kebab-opts))
 
+(comment
+  (let [sheet (jdbc/execute-one!
+                @datasource
+                ["select * from score_sheets where id = ? and status = 'complete'"
+                 7]
+                jdbc/snake-kebab-opts)
+       [headers & content] (:score-sheets/data sheet)
+          ;; TODO validate all results are reasonable
+        results (map (fn [row] (results/result-row->game-results headers row)) content) ]
+    headers
+    #_results)
+  )
+
 (defn approve-sheet!
   [{:keys [sheet-id]}]
   (let [sheet (jdbc/execute-one!
@@ -905,28 +942,36 @@
 
 (def event-weight-limits
   "Minimum weights for events by class"
-  {"braemar" { "open" 22 "masters" 22 "amateurs" 22 "juniors" 22 "womens" 12 "womensmaster" 12 "lightweight" 22}
+  {"braemar" { "open" 22 "masters" 22 "amateurs" 22 "juniors" 22 "womens" 12 "womensmaster" 12 "lightweight" 22 "womensyouth" 6}
    ;; there's a bug in the old database, where juinor's weight limit wasn't being read properly.
    ;; it's apparently supposed to be 12lb, but setting that breaks all prior scores...
-   "open"    { "open" 16 "masters" 16 "amateurs" 16 "juniors" 12 "womens" 8 "womensmaster" 8 "lightweight" 16}
-   "wob"     { "open" 56 "masters" 42 "amateurs" 56 "juniors" 42 "womens" 28 "womensmaster" 21 "lightweight" 42}
-   "hwfd"    { "open" 56 "masters" 42 "amateurs" 56 "juniors" 42 "womens" 28 "womensmaster" 21 "lightweight" 42}
-   "lwfd"    { "open" 28 "masters" 28 "amateurs" 28 "juniors" 28 "womens" 14 "womensmaster" 14 "lightweight" 28}
-   "lhmr"    { "open" 16 "masters" 16 "amateurs" 16 "juniors" 16 "womens" 12 "womensmaster" 12 "lightweight" 16}
-   "hhmr"    { "open" 22 "masters" 22 "amateurs" 22 "womens" 16 "womensmaster" 16 "lightweight" 22}
-   "sheaf"   { "open" 16 "masters" 16 "amateurs" 16 "womens" 10 "womensmaster" 10 "lightweight" 16}})
+   "open"    { "open" 16 "masters" 16 "amateurs" 16 "juniors" 12 "womens" 8 "womensmaster" 8 "lightweight" 16 "womensyouth" 6}
+   "wob"     { "open" 56 "masters" 42 "amateurs" 56 "juniors" 42 "womens" 28 "womensmaster" 21 "lightweight" 42 "womensyouth" 14}
+   "hwfd"    { "open" 56 "masters" 42 "amateurs" 56 "juniors" 42 "womens" 28 "womensmaster" 21 "lightweight" 42 "womensyouth" 14}
+   "lwfd"    { "open" 28 "masters" 28 "amateurs" 28 "juniors" 28 "womens" 14 "womensmaster" 14 "lightweight" 28 "womensyouth" 9}
+   "lhmr"    { "open" 16 "masters" 16 "amateurs" 16 "juniors" 16 "womens" 12 "womensmaster" 12 "lightweight" 16 "womensyouth" 8}
+   "hhmr"    { "open" 22 "masters" 22 "amateurs" 22 "womens" 16 "womensmaster" 16 "lightweight" 22 "womensyouth" 12}
+   "sheaf"   { "open" 16 "masters" 16 "amateurs" 16 "womens" 10 "womensmaster" 10 "lightweight" 16 "womensyouth" 8}})
 
 (def event-class-standards
   "Womens master (and the other master's classes other than \"base\"
   masters) have a set standard, rather than being based on a record."
-  {"braemar" {"womensmaster" {:distance (+ (* 36 12) 9) :weight 12}}
-   "open" {"womensmaster" {:distance (+ (* 47 12) 7) :weight 8}}
-   "wob" {"womensmaster" {:distance (+ (* 17 12) 6)} :weight 28}
-   "hwfd" {"womensmaster" {:distance (+ (* 42 12) 7)} :weight 28}
-   "lwfd" {"womensmaster" {:distance (+ (* 85 12) 2.5)} :weight 14}
-   "lhmr" {"womensmaster" {:distance (+ (* 100 12) 5)} :weight 12}
-   "hhmr" {"womensmaster" {:distance (+ (* 85 12) 7.5)} :weight 16}
-   "sheaf" {"womensmaster" {:distance (+ (* 34 12) 2)}} :weight 10})
+  {"braemar" {"womensmaster" {:distance (+ (* 36 12) 9) :weight 12}
+              "womensyouth" {:distance (+ (* 36 12) 9) :weight 6}}
+   "open" {"womensmaster" {:distance (+ (* 47 12) 7) :weight 8}
+           "womensyouth" {:distance (+ (* 47 12) 7) :weight 8}}
+   "wob" {"womensmaster" {:distance (+ (* 17 12) 6) :weight 28}
+         "womensyouth" {:distance (+ (* 17 12) 6) :weight 14}}
+   "hwfd" {"womensmaster" {:distance (+ (* 42 12) 7) :weight 28}
+          "womensyouth" {:distance (+ (* 42 12) 7) :weight 14}}
+   "lwfd" {"womensmaster" {:distance (+ (* 85 12) 2.5) :weight 14}
+          "womensyouth" {:distance (+ (* 85 12) 2.5) :weight 9}}
+   "lhmr" {"womensmaster" {:distance (+ (* 100 12) 5) :weight 12}
+          "womensyouth" {:distance (+ (* 100 12) 5) :weight 8}}
+   "hhmr" {"womensmaster" {:distance (+ (* 85 12) 7.5) :weight 16}
+          "womensyouth" {:distance (+ (* 85 12) 7.5) :weight 12}}
+   "sheaf" {"womensmaster" {:distance (+ (* 34 12) 2) :weight 10}
+            "womensyouth" {:distance (+ (* 34 12) 2) :weight 8}}})
 
 (defn score-for-result
   ([class {:keys [year result]}]
