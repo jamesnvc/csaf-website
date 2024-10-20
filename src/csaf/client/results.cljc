@@ -104,8 +104,9 @@
   (if (re-matches #"\d+" s)
     (->float s)
     (let [[_ ft ins] (re-matches #"(\d+)'(?:(\d+(?:[.]\d+)?)?\")?" s)
-          d (+ (* 12 (->int ft))
-               (or (some-> ins (->float)) 0))]
+          d (when (->int ft)
+              (+ (* 12 (->int ft))
+                 (or (some-> ins (->float)) 0)))]
       d)))
 
 (defn result-row->game-results
