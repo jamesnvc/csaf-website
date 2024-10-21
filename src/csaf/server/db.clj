@@ -631,7 +631,10 @@
   []
   (jdbc/execute!
     @datasource
-    ["select * from score_sheets where status = 'complete' or status = 'approved'"]
+    ["select members.first_name, members.last_name, score_sheets.*
+      from score_sheets
+      join members on members.id = score_sheets.\"submitted_by\"
+      where score_sheets.status = any('{complete, approved}')"]
     jdbc/snake-kebab-opts))
 
 (defn create-games-instance!

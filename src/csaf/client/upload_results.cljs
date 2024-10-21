@@ -26,7 +26,8 @@
                                (str "/members/sheet/" (:score-sheets/id new-sheet))))}))
 
 (defn admin-sheet-item-view
-  [{:score-sheets/keys [id created-at games-id games-date status]}]
+  [{:score-sheets/keys [id created-at games-id games-date status]
+    :members/keys [first-name last-name]}]
   [:li [:a {:href (str "/members/sheet/" id)
             :on-click (fn [e]
                         (.preventDefault e)
@@ -43,6 +44,9 @@
                           app-state)]
           [:span game-name
            (when games-date (str " @ " (.toLocaleDateString games-date)))])
+        " "
+        [:span {:tw "text-sm text-gray-500"}
+         "Submitted by " first-name " " last-name]
         " "
         [:span {:tw "text-sm text-gray-400"}
          "Created " (.toLocaleDateString created-at)]
@@ -445,7 +449,16 @@
                                      (x/view string/lower-case)
                                      (x/pred= "name")]
                                     x/FIRST)]
-                        sheet)]
+                        sheet)
+             class-idx (x/select-first
+                         [:score-sheets/data x/FIRST
+                          x/INDEXED-VALS
+                          (x/if-path [x/LAST
+                                      (x/view string/trim)
+                                      (x/view string/lower-case)
+                                      (x/pred= "class")]
+                                     x/FIRST)]
+                         sheet)]
          [:div {:tw "overflow-scroll"}
           (when (and editable? (seq (:score-sheets/data sheet)))
             [:p "Click on a cell to edit the contents"])
@@ -484,17 +497,25 @@
                        "-"]])
                (for [[cidx col] (map-indexed vector row)]
                  ^{:key cidx}
-                 [:td {:class (when (= cidx name-idx)
+                 [:td {:class (cond
+                                (= cidx name-idx)
                                 ["sticky left-0"
                                  (if (contains? member-names col)
+                                   "valid-member"
+                                   "missing-member")]
+                                (= cidx class-idx)
+                                (if (and col
+                                         (contains? (set results/classes-in-order)
+                                                    (string/lower-case col)))
                                   "valid-member"
-                                  "missing-member")])}
+                                  "missing-member"))}
                   [field-view {:value col
                                :read-only (not editable?)
                                :path (conj partial-path (x/nthpath ridx)
                                            (x/nthpath cidx))
                                :save-changes! save-changes!
-                               :list (when (= cidx name-idx) "athlete-names")}]])])
+                               :list (cond (= cidx name-idx) "athlete-names"
+                                           (= cidx class-idx) "class-names")}]])])
             (when (and editable? (seq (:score-sheets/data sheet)))
               [:tr
                [:td
@@ -511,6 +532,13 @@
           (for [[member-name id] member-names]
             ^{:key id}
             [:option {:value member-name}]))]
+
+       [:datalist {:id "class-names"}
+        (doall
+          (for [class-name results/classes-in-order]
+            ^{:key class-name}
+            [:option {:value class-name}]))]
+
 
        [sheet-preview-view sheet member-names]
 
