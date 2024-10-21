@@ -510,7 +510,7 @@
                                   "valid-member"
                                   "missing-member"))}
                   [field-view {:value col
-                               :read-only (not editable?)
+                               :read-only? (not editable?)
                                :path (conj partial-path (x/nthpath ridx)
                                            (x/nthpath cidx))
                                :save-changes! save-changes!
