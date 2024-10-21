@@ -822,7 +822,32 @@
       insert into members_roles (member_id, role) values (?, 'admin')"
      9999])
   ;; looks like they do
+
   )
+
+
+(defn retract-sheet!
+  [sheet-id]
+  (let [sheet (jdbc/execute-one!
+                @datasource
+                ["select status from score_sheets where id = ?" sheet-id]
+                jdbc/snake-kebab-opts)]
+    (when (not= "approved" (:score-sheets/status sheet))
+      (throw (ex-info "Sheet not approved, can't retract" {:sheet-id sheet-id
+                                                           :sheet-status sheet})))
+
+    (jdbc/execute!
+      @datasource
+      [" delete from game_member_results
+         where game_instance in (select id from game_instances where source_sheet_id = ?);
+
+        delete from game_results_placing
+         where game_instance_id in (select id from game_instances where source_sheet_id = ?);
+
+        update score_sheets set status = 'complete' where id = ?;"
+       sheet-id
+       sheet-id
+       sheet-id])))
 
 ;; Records
 

@@ -362,6 +362,16 @@
             {:status 400})
           {:status 403})))]
 
+   [[:post "/api/score-sheets/:id/retract"]
+    (fn [req]
+      (let [user-id (get-in req [:session :user-id])]
+        (if (and user-id ((db/member-roles user-id) :admin))
+          (if-let [sheet-id (->int (get-in req [:params :id]))]
+            {:status 200
+             :body (db/retract-sheet! sheet-id)}
+            {:status 400})
+          {:status 403})))]
+
    [[:post "/api/games/new"]
     (fn [req]
       (if (some? (logged-in-user req))

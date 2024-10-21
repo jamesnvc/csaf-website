@@ -542,8 +542,9 @@
 
        [:div.submit
 
-        (if (and (= "complete" (:score-sheets/status sheet))
-                 (:admin-view @app-state))
+        (cond
+          (and (= "complete" (:score-sheets/status sheet))
+               (:admin-view @app-state))
           ;; TODO: validate game, game date, etc
           (r/with-let [error (r/atom nil)]
             [:div
@@ -571,6 +572,40 @@
                                                             "approved"))
                                             :on-error (fn [err] (reset! error err))})))}
               "Approve"]])
+
+          (and (= "approved" (:score-sheets/status sheet))
+               (:admin-view @app-state))
+          [:div
+           [:span "Results approved & in the database"]
+           (r/with-let [error (r/atom nil)]
+             [:<>
+              (when @error
+                [:div.error
+                 "Something went wrong; please contact the site maintainer and send them the information below:"
+                 [:br]
+                 [:code (pr-str @error)]])
+              [:button
+              {:on-click (fn []
+                           (when (js/confirm "Retract these results & re-edit this sheet?")
+                             (reset! error nil)
+                             (ajax/request {:method :post
+                                            :uri (str "/api/score-sheets/"
+                                                      (:score-sheets/id sheet)
+                                                      "/retract")
+                                            :credentials? true
+                                            :on-success
+                                            (fn [_]
+                                              (swap!
+                                                app-state
+                                                assoc-in
+                                                [:submitted-sheets
+                                                 active-sheet
+                                                 :score-sheets/status]
+                                                "complete"))
+                                            :on-error (fn [err] (reset! error err))})))}
+              "Retract Results"]])]
+
+          :else
           (case (:score-sheets/status sheet)
             "pending"
             [:button {:on-click (fn []
