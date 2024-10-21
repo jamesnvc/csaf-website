@@ -84,6 +84,25 @@ create table if not exists members_roles (
 
 do $$
   begin
+    if not exists (select 1 from pg_type where typname = 'score_sheet_status') then
+      create type score_sheet_status as enum (
+        'pending', 'complete', 'approved'
+      );
+    end if;
+end$$;
+
+create table if not exists score_sheets (
+  "id" serial primary key,
+  "status" score_sheet_status not null default 'pending',
+  "games_id" integer references games(id),
+  "games_date" date,
+  "created_at" timestamp with time zone not null default now(),
+  "submitted_by" integer not null references members(id),
+  "data" jsonb
+);
+
+do $$
+  begin
     if not exists (select 1 from pg_type where typname = 'game_status') then
       create type game_status as enum (
          'active', 'inactive'
@@ -108,7 +127,8 @@ create table if not exists game_instances (
    "id" serial primary key,
    "game_id" integer not null references games(id),
    "date" date not null,
-   "events_list" text
+   "events_list" text,
+   "source_sheet_id" integer references score_sheets(id)
 );
 create index if not exists game_instances_date_year_idx
   on game_instances (extract("year" from "date"));
@@ -157,25 +177,6 @@ create table if not exists game_results_placing (
 );
 create index if not exists game_results_placing_pkey2
   on game_results_placing (game_instance_id, member_id);
-
-do $$
-  begin
-    if not exists (select 1 from pg_type where typname = 'score_sheet_status') then
-      create type score_sheet_status as enum (
-        'pending', 'complete', 'approved'
-      );
-    end if;
-end$$;
-
-create table if not exists score_sheets (
-  "id" serial primary key,
-  "status" score_sheet_status not null default 'pending',
-  "games_id" integer references games(id),
-  "games_date" date,
-  "created_at" timestamp with time zone not null default now(),
-  "submitted_by" integer not null references members(id),
-  "data" jsonb
-);
 
 do $$
   begin

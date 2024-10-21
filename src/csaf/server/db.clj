@@ -111,6 +111,12 @@
     @datasource
     ["alter type membership_class_code add value 'womensyouth'"]))
 
+(defn migrate-add-game-instance-source
+  []
+  (jdbc/execute!
+    @datasource
+    ["alter table game_instances add column source_sheet_id integer references score_sheets(id)"]))
+
 ;;; member queries
 
 (defn authenticate-user
@@ -708,8 +714,8 @@
           year-weights (event-top-weights-for-year-by-class year)]
       (jdbc/execute!
         @datasource
-        ["with new_game_instance as (insert into game_instances (game_id, date) values (?, ?)
-                                     returning *),
+        ["with new_game_instance as (insert into game_instances (game_id, date, score_sheet_id)
+                                     values (?, ?, ?) returning *),
 
           new_results as (
            insert into game_member_results
@@ -733,6 +739,7 @@
             update score_sheets set status = 'approved' where id = ?"
          (:score-sheets/games-id sheet)
          (:score-sheets/games-date sheet)
+         (:score-sheets/id sheet)
 
          (vec
            (for [result results
