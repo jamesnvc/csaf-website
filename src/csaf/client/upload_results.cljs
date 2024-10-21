@@ -360,7 +360,9 @@
                                  sheets-key
                                  (x/keypath active-sheet)
                                  :score-sheets/games-date]
-                                (js/Date. (.. e -target -value))
+                                ;; explicitly create the new date in UTC to be consistent
+                                ;; with how it will be displayed
+                                (js/Date. (str (.. e -target -value) "T00:00:00-00:00"))
                                 app-state)
                               (save-changes!))}]]
 
