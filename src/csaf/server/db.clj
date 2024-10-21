@@ -714,7 +714,7 @@
           year-weights (event-top-weights-for-year-by-class year)]
       (jdbc/execute!
         @datasource
-        ["with new_game_instance as (insert into game_instances (game_id, date, score_sheet_id)
+        ["with new_game_instance as (insert into game_instances (game_id, date, source_sheet_id)
                                      values (?, ?, ?) returning *),
 
           new_results as (
@@ -770,6 +770,27 @@
          sheet-id]))))
 
 (comment
+
+  (jdbc/execute!
+    @datasource
+    ["select game_instances.id, score_sheets.id, games.name from game_instances join games on game_id = games.id join score_sheets on score_sheets.games_id = game_instances.game_id where extract(\"year\" from game_instances.date) = 2024 and game_instances.source_sheet_id is null and score_sheets.status = 'approved'"])
+
+
+  (doseq [r [{:game_instances/id 1660, :score_sheets/id 12, :games/name "Kinmount Highland Games"}
+             {:game_instances/id 1661, :score_sheets/id 11, :games/name "IHGF Canadian Amateur Championship - Roseneath "}
+             {:game_instances/id 1662, :score_sheets/id 7, :games/name "Pugwash Highland Games"}
+             {:game_instances/id 1663, :score_sheets/id 16, :games/name "Bressuire Highland Games"}
+             {:game_instances/id 1665, :score_sheets/id 20, :games/name "Canada Day at Craigflower"}]]
+    (jdbc/execute!
+      @datasource
+      ["update game_instances set source_sheet_id = ? where id = ?"
+       (:score_sheets/id r) (:game_instances/id r)]))
+
+
+  (jdbc/execute!
+    @datasource
+    ["select score_sheets.id, games.name from score_sheets join games on games_id = games.id where extract(\"year\" from score_sheets.games_date) = 2024"])
+
   (approve-sheet! {:sheet-id 1})
   (jdbc/execute!
     @datasource
