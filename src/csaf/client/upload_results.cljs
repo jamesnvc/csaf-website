@@ -3,6 +3,7 @@
    [clojure.string :as string]
    [bloom.commons.ajax :as ajax]
    [com.rpl.specter :as x]
+   [goog.object :as o]
    [reagent.core :as r]
    [csaf.client.styles :as styles]
    [csaf.client.state :refer [app-state]]
@@ -270,9 +271,9 @@
                                  (save-sheet! sheet #(reset! last-saved sheet))))]
     (let [active-sheet (:active-sheet @app-state)
           sheet (get-in @app-state [sheets-key active-sheet])
-          editable? (and (not= "approved" (:score-sheets/status sheet))
-                         (or (= "complete" (:score-sheets/status sheet))
-                             (= "admin" (:members/site-code (:logged-in-user @app-state)))))
+          editable? (or (= "pending" (:score-sheets/status sheet))
+                        (and (= "complete" (:score-sheets/status sheet))
+                             (contains? (:roles (:logged-in-user @app-state)) "admin")))
           member-names (into {}
                              (map (fn [{:members/keys [first-name last-name id]}]
                                     [(str last-name ", " first-name) id]))
@@ -406,6 +407,28 @@
           [:dd "The weight of the implement in pounds"]
           [:dt "CABR_length"]
           [:dd "The length of the caber like feet'inches\", e.g. 19'9\""]]]]
+
+       [:button
+        {:on-click (fn []
+                     (let [blob (js/Blob. #js [(->> (conj default-sheet-header
+                                                          (-> default-sheet-header
+                                                              first
+                                                              count
+                                                              (repeat "")
+                                                              vec))
+                                                    (map #(string/join "," %))
+                                                    (string/join "\n"))]
+                                          #js {:type "text/csv; charset=utf-8"})
+                           url (js/URL.createObjectURL blob)
+                           a (doto (js/document.createElement "a")
+                               (o/set "href" url)
+                               (o/set "target" "_blank")
+                               (o/set "download"
+                                      "Highland Games score submissions.csv"))]
+                       (.click a)
+                       (js/URL.revokeObjectURL url)))}
+        "Download CSV template"]
+
 
        (when editable?
          [:label {:tw "py-1 px-2 rounded bg-gray-200 border-1px border-black"} "Upload CSV"
