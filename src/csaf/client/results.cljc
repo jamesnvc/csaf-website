@@ -36,6 +36,7 @@
   [cls]
   (case cls
     "womensmaster" "Womens Master"
+    "womensyouth" "Womens Youth"
     (string/capitalize cls)))
 
 (def display-event-name

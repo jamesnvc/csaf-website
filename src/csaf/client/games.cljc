@@ -32,9 +32,7 @@
                   :value class :checked (contains? (set (get selected "class"))
                                                    class)
                   :tw "mr-1"}]
-         (if (= class "womensmaster")
-           "Women's Masters"
-           (string/capitalize class))])]]
+         (results/display-class class)])]]
 
     [:fieldset [:legend "Event Type"]
      [:div {:tw "flex flex-row flex-wrap gap-4"}
@@ -78,7 +76,7 @@
              [:thead
               [:tr
                [:th {:tw "font-normal text-sm text-gray-500"}
-                    [string/capitalize class]]]
+                    (results/display-class class)]]
               [:tr [:th ""]
                [:th "Name"] [:th "Place"]
                (for [event-name results/events-in-order
