@@ -625,7 +625,22 @@
                                                                    "complete"))})))}
              "Submit results" ]
             "complete"
-            [:span "Awaiting admin approval"]
+            [:div [:span "Awaiting admin approval"]
+             [:button {:on-click (fn []
+                                   (ajax/request {:method :post
+                                                  :uri (str "/api/score-sheets/"
+                                                            (:score-sheets/id sheet)
+                                                            "/cancel-submit")
+                                                  :credentials? true
+                                                  :on-success (fn [_]
+                                                                (swap!
+                                                                  app-state
+                                                                  assoc-in
+                                                                  [:score-sheets
+                                                                   active-sheet
+                                                                   :score-sheets/status]
+                                                                  "pending"))}))}
+              "Cancel & Continue Editing"]]
             "approved"
             [:span "Results approved & in the database"]
             nil ""))]])))

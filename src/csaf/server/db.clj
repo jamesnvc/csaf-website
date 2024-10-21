@@ -633,6 +633,15 @@
       where id = ? and submitted_by = ? and status = 'pending'"
      sheet-id user-id]))
 
+(defn cancel-sheet-approval
+  [{:keys [sheet-id user-id]}]
+  (jdbc/execute!
+    @datasource
+    ["update score_sheets
+      set status = 'pending'
+      where id = ? and submitted_by = ? and status = 'complete'"
+     sheet-id user-id]))
+
 (defn submitted-score-sheets
   []
   (jdbc/execute!

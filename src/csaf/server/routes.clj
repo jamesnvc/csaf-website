@@ -352,6 +352,17 @@
           {:status 400})
         {:status 403}))]
 
+   [[:post "/api/score-sheets/:id/cancel-submit"]
+    (fn [req]
+      (if-let [user-id (get-in req [:session :user-id])]
+        (if-let [sheet-id (->int (get-in req [:params :id]))]
+          {:status 200
+           :body (db/cancel-sheet-approval
+                   {:sheet-id sheet-id
+                    :user-id user-id})}
+          {:status 400})
+        {:status 403}))]
+
    [[:post "/api/score-sheets/:id/approve"]
     (fn [req]
       (let [user-id (get-in req [:session :user-id])]
