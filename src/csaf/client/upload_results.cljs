@@ -260,17 +260,16 @@
   []
   (r/with-let [dt-formatter (js/Intl.DateTimeFormat. js/undefined #js {:timeZone "UTC"})
                last-saved (r/atom nil)
+               sheets-key (if (:admin-view @app-state)
+                            :submitted-sheets
+                            :score-sheets)
                save-changes! (fn []
                                (let [sheet (get-in @app-state
-                                                   [(if (:admin-view @app-state)
-                                                      :submitted-sheets
-                                                      :score-sheets)
+                                                   [sheets-key
                                                     (:active-sheet @app-state)])]
                                  (save-sheet! sheet #(reset! last-saved sheet))))]
     (let [active-sheet (:active-sheet @app-state)
-          sheet (if (:admin-view @app-state)
-                  (get-in @app-state [:submitted-sheets active-sheet])
-                  (get-in @app-state [:score-sheets active-sheet]))
+          sheet (get-in @app-state [sheets-key active-sheet])
           editable? (and (not= "approved" (:score-sheets/status sheet))
                          (or (= "complete" (:score-sheets/status sheet))
                              (= "admin" (:members/site-code (:logged-in-user @app-state)))))
@@ -281,8 +280,7 @@
       (when (nil? @last-saved) (reset! last-saved sheet))
       (when (empty? (:score-sheets/data sheet))
         (swap! app-state assoc-in
-               [(if (:admin-view @app-state) :submitted-sheets :score-sheets)
-                (:active-sheet @app-state) :score-sheets/data]
+               [sheets-key (:active-sheet @app-state) :score-sheets/data]
                default-sheet-header))
       [:div {:tw "flex flex-col gap-3"}
        [:a {:href "/members"
@@ -311,7 +309,7 @@
                                      (reset! new-game-name "")
                                      (do (x/setval
                                            [x/ATOM
-                                            :score-sheets
+                                            sheets-key
                                             (x/keypath active-sheet)
                                             :score-sheets/games-id]
                                            (js/parseInt (.. e -target -value) 10)
@@ -338,7 +336,7 @@
                                                           (fn [gs] (sort-by :games/name gs)))
                                                    (swap! app-state
                                                           assoc-in
-                                                          [:score-sheets
+                                                          [sheets-key
                                                            active-sheet
                                                            :score-sheets/games-id]
                                                           (:games/id new-game))
@@ -359,7 +357,7 @@
                  :on-change (fn [e]
                               (x/setval
                                 [x/ATOM
-                                 :score-sheets
+                                 sheets-key
                                  (x/keypath active-sheet)
                                  :score-sheets/games-date]
                                 (js/Date. (.. e -target -value))
@@ -426,7 +424,7 @@
                                              :on-success (fn [resp]
                                                            (x/setval
                                                              [x/ATOM
-                                                              :score-sheets
+                                                              sheets-key
                                                               (x/keypath active-sheet)
                                                               :score-sheets/data]
                                                              (->> (vec (:data resp))
@@ -436,9 +434,7 @@
                                                                     x/NONE))
                                                              app-state)
                                                            (save-changes!))}))))))}]])
-       (let [partial-path [x/ATOM (if (:admin-view @app-state)
-                                    :submitted-sheets
-                                    :score-sheets)
+       (let [partial-path [x/ATOM sheets-key
                            (x/keypath active-sheet)
                            :score-sheets/data]
              name-idx (x/select-first
