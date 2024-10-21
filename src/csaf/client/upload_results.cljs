@@ -272,7 +272,7 @@
                   (get-in @app-state [:submitted-sheets active-sheet])
                   (get-in @app-state [:score-sheets active-sheet]))
           editable? (and (not= "approved" (:score-sheets/status sheet))
-                         (or (= "pending" (:score-sheets/status sheet))
+                         (or (= "complete" (:score-sheets/status sheet))
                              (= "admin" (:members/site-code (:logged-in-user @app-state)))))
           member-names (into {}
                              (map (fn [{:members/keys [first-name last-name id]}]
