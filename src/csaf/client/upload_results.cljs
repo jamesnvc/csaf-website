@@ -261,15 +261,17 @@
   []
   (r/with-let [dt-formatter (js/Intl.DateTimeFormat. js/undefined #js {:timeZone "UTC"})
                last-saved (r/atom nil)
-               sheets-key (if (:admin-view @app-state)
-                            :submitted-sheets
-                            :score-sheets)
                save-changes! (fn []
                                (let [sheet (get-in @app-state
-                                                   [sheets-key
+                                                   [(if (:admin-view @app-state)
+                                                      :submitted-sheets
+                                                      :score-sheets)
                                                     (:active-sheet @app-state)])]
                                  (save-sheet! sheet #(reset! last-saved sheet))))]
-    (let [active-sheet (:active-sheet @app-state)
+    (let [sheets-key (if (:admin-view @app-state)
+                       :submitted-sheets
+                       :score-sheets)
+          active-sheet (:active-sheet @app-state)
           sheet (get-in @app-state [sheets-key active-sheet])
           editable? (or (= "pending" (:score-sheets/status sheet))
                         (and (= "complete" (:score-sheets/status sheet))
