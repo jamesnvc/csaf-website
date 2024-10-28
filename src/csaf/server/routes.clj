@@ -85,6 +85,14 @@
   (some-> (get-in req [:session :user-id])
           (db/member)))
 
+(defn user-is-admin?
+  [req]
+  (some-> req
+          (get-in [:session :user-id])
+          (db/member-roles)
+          (contains? :admin)
+          boolean))
+
 (def routes
   [
    [[:get "/"]
@@ -180,11 +188,10 @@
 
    [[:get "/records/:id/approve"]
     (fn [req]
-      (let [user-id (get-in req [:session :user-id])
-            submission (some-> (get-in req [:params :id])
+      (let [submission (some-> (get-in req [:params :id])
                                ->int
                                (db/record-submission))]
-        (if (and user-id ((db/member-roles user-id) :admin) submission)
+        (if (user-is-admin? req)
           {:status 200
            :headers {"Content-Type" "text/html; charset=utf-8"}
            :body (-> (records/submit-record-view
@@ -309,7 +316,7 @@
                           :logged-in-user user
                           :members (db/all-members)
                           :games (db/all-games-names)}
-                   ((db/member-roles user-id) :admin)
+                   (user-is-admin? req)
                    (-> (assoc :submitted-sheets
                               (db/submitted-score-sheets))
                        (assoc :pending-records
@@ -365,23 +372,21 @@
 
    [[:post "/api/score-sheets/:id/approve"]
     (fn [req]
-      (let [user-id (get-in req [:session :user-id])]
-        (if (and user-id ((db/member-roles user-id) :admin))
-          (if-let [sheet-id (->int (get-in req [:params :id]))]
-            {:status 200
-             :body (db/approve-sheet! {:sheet-id sheet-id})}
-            {:status 400})
-          {:status 403})))]
+      (if (user-is-admin? req)
+        (if-let [sheet-id (->int (get-in req [:params :id]))]
+          {:status 200
+           :body (db/approve-sheet! {:sheet-id sheet-id})}
+          {:status 400})
+        {:status 403}))]
 
    [[:post "/api/score-sheets/:id/retract"]
     (fn [req]
-      (let [user-id (get-in req [:session :user-id])]
-        (if (and user-id ((db/member-roles user-id) :admin))
-          (if-let [sheet-id (->int (get-in req [:params :id]))]
-            {:status 200
-             :body (db/retract-sheet! sheet-id)}
-            {:status 400})
-          {:status 403})))]
+      (if (user-is-admin? req)
+        (if-let [sheet-id (->int (get-in req [:params :id]))]
+          {:status 200
+           :body (db/retract-sheet! sheet-id)}
+          {:status 400})
+        {:status 403}))]
 
    [[:post "/api/games/new"]
     (fn [req]
@@ -401,48 +406,44 @@
 
    [[:get "/admin/pages"]
     (fn [req]
-      (let [user-id (get-in req [:session :user-id])]
-        (if (and user-id ((db/member-roles user-id) :admin))
-          {:status 200
-           :headers {"Content-Type" "text/html; charset=utf-8"}
-           :body (-> (pages-editor/pages-editor-view (db/all-page-titles))
-                     (layout/layout (logged-in-user req))
-                     page)}
-          {:status 403})))]
+      (if (user-is-admin? req)
+        {:status 200
+         :headers {"Content-Type" "text/html; charset=utf-8"}
+         :body (-> (pages-editor/pages-editor-view (db/all-page-titles))
+                   (layout/layout (logged-in-user req))
+                   page)}
+        {:status 403}))]
 
    [[:post "/admin/pages"]
     (fn [req]
-      (let [user-id (get-in req [:session :user-id])]
-        (if (and user-id ((db/member-roles user-id) :admin))
-          (let [title (get-in req [:params :title])]
-            (try
-              (db/create-page! title)
+      (if (user-is-admin? req)
+        (let [title (get-in req [:params :title])]
+          (try
+            (db/create-page! title)
+            {:status 303
+             :headers {"Location" (str "/admin/pages/" title)}}
+            (catch org.postgresql.util.PSQLException _
               {:status 303
-               :headers {"Location" (str "/admin/pages/" title)}}
-              (catch org.postgresql.util.PSQLException _
-                {:status 303
-                 :headers {"Location" "/admin/pages"}
-                 :body (-> (pages-editor/pages-editor-view (db/all-page-titles))
-                           (layout/layout (logged-in-user req))
-                           page)})))
-          {:status 403})))]
+               :headers {"Location" "/admin/pages"}
+               :body (-> (pages-editor/pages-editor-view (db/all-page-titles))
+                         (layout/layout (logged-in-user req))
+                         page)})))
+        {:status 403}))]
 
    [[:get "/admin/pages"]
     (fn [req]
-      (let [user-id (get-in req [:session :user-id])]
-        (if (and user-id ((db/member-roles user-id) :admin))
-          {:status 200
-           :headers {"Content-Type" "text/html; charset=utf-8"}
-           :body (-> (pages-editor/pages-editor-view (db/all-page-titles))
-                     (layout/layout (logged-in-user req))
-                     page)}
-          {:status 403})))]
+      (if (user-is-admin? req)
+        {:status 200
+         :headers {"Content-Type" "text/html; charset=utf-8"}
+         :body (-> (pages-editor/pages-editor-view (db/all-page-titles))
+                   (layout/layout (logged-in-user req))
+                   page)}
+        {:status 403}))]
 
    [[:get "/admin/pages/:title"]
     (fn [req]
-      (let [title (get-in req [:params :title])
-            user-id (get-in req [:session :user-id])]
-        (if (and user-id ((db/member-roles user-id) :admin))
+      (let [title (get-in req [:params :title])]
+        (if (user-is-admin? req)
           (if-let [loaded-page (db/load-page title)]
             {:status 200
              :headers {"Content-Type" "text/html; charset=utf-8"}
@@ -455,9 +456,8 @@
 
    [[:post "/admin/pages/:title"]
     (fn [req]
-      (let [title (get-in req [:params :title])
-            user-id (get-in req [:session :user-id])]
-        (if (and user-id ((db/member-roles user-id) :admin))
+      (let [title (get-in req [:params :title])]
+        (if (user-is-admin? req)
           (if (some? (db/load-page title))
             (do (db/set-page-content! title (get-in req [:params :content]))
                 {:status 303
