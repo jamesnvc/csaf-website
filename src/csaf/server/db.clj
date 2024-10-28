@@ -139,6 +139,14 @@
       order by last_name asc, first_name asc"]
     jdbc/snake-kebab-opts))
 
+(defn all-members-regardless-of-class
+  []
+  (jdbc/execute!
+    @datasource
+    ["select * from members where status = 'active'
+      order by last_name asc, first_name asc"]
+    jdbc/snake-kebab-opts))
+
 (defn member
   [id]
   (-> (jdbc/execute-one!
@@ -148,6 +156,25 @@
      where id = ? group by members.id" id]
         jdbc/snake-kebab-opts)
       (update :roles set)))
+
+(defn generate-password
+  []
+  (with-open [f (io/reader (io/file "/usr/share/dict/words"))]
+    (->> (line-seq f)
+         (sequence
+           (comp (filter (fn [s] (< 4 (count s) 8)))
+                 (filter (fn [s] (re-matches #"[a-z]+" s)))))
+         ((juxt rand-nth rand-nth rand-nth))
+         (string/join "-"))))
+
+(defn reset-member-password!
+  [member-id]
+  (let [new-pass (generate-password)]
+    (jdbc/execute!
+      @datasource
+      ["update members set password_hash = ? where id = ?"
+       (bcrypt/encrypt new-pass) member-id])
+    new-pass))
 
 (comment
   (member 1442)

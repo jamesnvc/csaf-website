@@ -69,6 +69,8 @@
 
      [:a {:href "/admin/pages"} "Edit Pages"]
 
+     [:a {:href "/admin/users/manage"} "Manage Users"]
+
      (when (seq (:pending-records @app-state))
        [:div
         [:h2 {:tw "text-lg"} "Pending Records"]

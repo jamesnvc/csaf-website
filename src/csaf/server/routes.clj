@@ -9,6 +9,7 @@
    [csaf.client.home]
    [csaf.client.athletes :as athletes]
    [csaf.client.games :as games]
+   [csaf.client.members :as members]
    [csaf.client.pages-editor :as pages-editor]
    [csaf.client.rankings :as rankings]
    [csaf.client.results :as results]
@@ -464,6 +465,45 @@
                  :headers {"Location" (str "/admin/pages/" title)}})
             {:status 404})
           {:status 403})))]
+
+   [[:get "/admin/users/manage"]
+    (fn [req]
+      (if (user-is-admin? req)
+        {:status 200
+         :headers {"Content-Type" "text/html; charset=utf-8"}
+         :body (-> (members/members-manage-view
+                     {:members (db/all-members-regardless-of-class)})
+                   (layout/layout (logged-in-user req))
+                   (page))}
+        {:status 403}))]
+
+   [[:get "/admin/users/manage/:user-id"]
+    (fn [req]
+      (if (and (user-is-admin? req)
+               (->int (get-in req [:params :user-id])))
+        (cond-> {:status 200
+                 :headers {"Content-Type" "text/html; charset=utf-8"}
+                 :body (-> (members/member-manage-view
+                             {:member (db/member (->int (get-in req [:params :user-id])))
+                              :message (get-in req [:session :flash])})
+                           (layout/layout (logged-in-user req))
+                           (page))}
+          (some? (get-in req [:session :flash]))
+          (assoc :session (dissoc (req :session) :flash)))
+        {:status 403}))]
+
+   [[:post "/admin/users/manage/:user-id/reset-password"]
+    (fn [req]
+      (if (and (user-is-admin? req)
+               (->int (get-in req [:params :user-id])))
+        (let [new-pass (db/reset-member-password!
+                         (->int (get-in req [:params :user-id])))]
+          {:status 303
+           :headers {"Location" (str "/admin/users/manage/" (get-in req [:params :user-id]))}
+           :session (assoc (:session req)
+                           :flash (str "New password is \"" new-pass "\""))})
+        {:status 403})
+      )]
 
    [[:get "/page/:page"]
     (fn [req]
