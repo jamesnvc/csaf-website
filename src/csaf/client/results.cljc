@@ -110,6 +110,11 @@
                  (or (some-> ins (->float)) 0)))]
       d)))
 
+(comment
+  (string/replace "50'" #"[^0-9]+$" "")
+  (->int "50'")
+  )
+
 (defn result-row->game-results
   [headers row]
   (let [row-keys (zipmap (map string/lower-case headers) row)
@@ -127,7 +132,7 @@
                           (and (get row-keys (str evt "_feet"))
                                (get row-keys (str evt "_inches"))
                                (not (string/blank?
-                                      (get row-keys (str evt "_feet")))) ))
+                                      (get row-keys (str evt "_feet"))))))
                       (get row-keys (str evt "_weight"))
                       (not (string/blank? (get row-keys (str evt "_weight"))))
                       (not= 0 (->float (get row-keys (str evt "_weight")))))
@@ -140,11 +145,20 @@
 
                            (and (not= evt "cabr") (get row-keys (str evt "_feet")))
                            (assoc :distance-inches
-                                  (+ (* 12 (->int (get row-keys (str evt "_feet"))))
-                                     (or (->float (get row-keys (str evt "_inches"))) 0)))
+                                  (+ (* 12 (->int (string/replace (get row-keys (str evt "_feet"))
+                                                                  #"[^0-9]*$" "")))
+                                     (or (->float
+                                           (string/replace (get row-keys (str evt "_inches"))
+                                                           #"[^0-9]*$" "")) 0)))
 
                            (and (not= evt "cabr") (get row-keys evt))
                            (assoc :distance-inches (parse-distance (get row-keys evt)))))
                res))
            base
            (map string/lower-case (vals abbrev-event-name))))))
+
+(comment
+  (result-row->game-results ["name" "country" "class" "placing" "brae_feet" "brae_inches" "brae_weight"]
+                            ["James" "Canada" "Amateurs" "1" "10'" "10\"" "20"])
+  (->float "10\"")
+  )
