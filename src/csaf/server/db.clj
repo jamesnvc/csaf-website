@@ -117,6 +117,18 @@
     @datasource
     ["alter table game_instances add column source_sheet_id integer references score_sheets(id)"]))
 
+(declare generate-password)
+(defn migrate-randomize-old-member-passwords
+  []
+  (->> (jdbc/plan @datasource ["select id, password_hash from members"])
+       (run! (fn [row]
+               (when (bcrypt/check "newpass" (:password_hash row))
+                 (jdbc/execute!
+                   @datasource
+                   ["update members set password_hash = ? where id = ?"
+                    (bcrypt/encrypt (generate-password))
+                    (:id row)]))))))
+
 ;;; member queries
 
 (defn authenticate-user
