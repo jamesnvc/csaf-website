@@ -129,6 +129,13 @@
                     (bcrypt/encrypt (generate-password))
                     (:id row)]))))))
 
+(defn migrate-game-result-pkey
+  []
+  (jdbc/execute!
+    @datasource
+    ["alter table game_results_placing drop constraint game_results_placing_pkey;
+      alter table game_results_placing add primary key (member_id, game_instance_id, class)"]))
+
 ;;; member queries
 
 (defn authenticate-user

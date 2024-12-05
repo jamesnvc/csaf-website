@@ -173,7 +173,7 @@ create table if not exists game_results_placing (
    "game_instance_id" integer not null references game_instances(id),
    "placing" integer not null check ("placing" > 0),
    "class" membership_class_code not null,
-   primary key(member_id, game_instance_id)
+   primary key(member_id, game_instance_id, "class")
 );
 create index if not exists game_results_placing_pkey2
   on game_results_placing (game_instance_id, member_id);
