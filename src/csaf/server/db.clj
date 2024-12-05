@@ -460,6 +460,9 @@
   ;; Amanda F. Walsh
   (merge-members! [1203 1567 ])
 
+  ;; Nic Renyard
+  (merge-members! [1557 1460])
+
 
   ;; Test users
   (jdbc/execute!
