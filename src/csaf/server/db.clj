@@ -740,7 +740,7 @@
                         ["insert into members (first_name, last_name, login, password_hash, class, status)
                           values (?, ?, ?, ?, 'unknown', 'active') returning *"
                          fname lname (str lname "." fname)
-                         (bcrypt/encrypt "newpass")])]
+                         (bcrypt/encrypt (generate-password))])]
                   (assoc member-names (:name result) id))))
             member-names->id
             results)
