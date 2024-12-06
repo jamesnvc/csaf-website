@@ -97,7 +97,7 @@
 
 (defn parse-clock-minutes
   [s]
-  (let [[_ hrs mins] (re-matches #"(\d+):(\d{2})" s)]
+  (when-let [[_ hrs mins] (re-matches #"(\d+):(\d{2})" s)]
     (+ (* 60 (->int hrs)) (->int mins))))
 
 (defn parse-distance
@@ -127,12 +127,17 @@
                            abbrev-event-name)]
     (->> (reduce
            (fn [res evt]
-             (if (and (or (and (get row-keys evt)
-                               (not (string/blank? (get row-keys evt))))
-                          (and (get row-keys (str evt "_feet"))
-                               (get row-keys (str evt "_inches"))
-                               (not (string/blank?
-                                      (get row-keys (str evt "_feet"))))))
+             (if (and (if (= evt "cabr")
+                        (and (get row-keys evt)
+                             (re-matches #"\d{1,2}:\d{2}" (get row-keys evt))
+                             (get row-keys (str evt "_length"))
+                             (not= 0 (->float (get row-keys (str evt "_length")))))
+                        (or (and (get row-keys evt)
+                                 (not (string/blank? (get row-keys evt))))
+                            (and (get row-keys (str evt "_feet"))
+                                 (get row-keys (str evt "_inches"))
+                                 (not (string/blank?
+                                        (get row-keys (str evt "_feet")))))))
                       (get row-keys (str evt "_weight"))
                       (not (string/blank? (get row-keys (str evt "_weight"))))
                       (not= 0 (->float (get row-keys (str evt "_weight")))))
