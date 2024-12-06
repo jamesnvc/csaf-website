@@ -121,7 +121,8 @@
         base {:name (get row-keys "name")
               :placing (->int (get row-keys "placing"))
               ;; TODO validate class
-              :class (class-names (string/lower-case (get row-keys "class")))}
+              :class (class-names (string/lower-case (get row-keys "class")))
+              :country (get row-keys "country" "Canada")}
         abbrev->name (into {}
                            (map (fn [[k v]] [(string/lower-case v) k]))
                            abbrev-event-name)]

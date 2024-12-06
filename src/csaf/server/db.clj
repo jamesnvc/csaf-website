@@ -756,10 +756,12 @@
                       (jdbc/execute-one!
                         @datasource
                         ;; todo what else gets inserted?
-                        ["insert into members (first_name, last_name, login, password_hash, class, status)
-                          values (?, ?, ?, ?, 'unknown', 'active') returning *"
+                        ["insert into members (first_name, last_name, login, password_hash, country,
+                          class, status)
+                          values (?, ?, ?, ?, ?, 'unknown', 'active') returning *"
                          fname lname (str lname "." fname)
-                         (bcrypt/encrypt (generate-password))])]
+                         (bcrypt/encrypt (generate-password))
+                         (get result :country "Canada")])]
                   (assoc member-names (:name result) id))))
             member-names->id
             results)
