@@ -34,10 +34,16 @@
 
 (defn display-class
   [cls]
-  (case cls
-    "womensmaster" "Womens Master"
-    "womensyouth" "Womens Youth"
-    (string/capitalize cls)))
+  (cond-> cls
+    (string/starts-with? cls "womens")
+    (string/replace #"^womens" "women's ")
+    (re-matches #".*\d+\+$" cls)
+    (string/replace #"(\d+\+)$" " $1")
+    true (string/replace #"(\S+)\b" (fn [[_ w]] (string/capitalize w)))))
+
+(comment
+  (map display-class classes-in-order)
+  )
 
 (def display-event-name
   {"braemar" "Braemar Stone"
@@ -65,7 +71,8 @@
   ["braemar" "open" "sheaf" "caber" "lwfd" "hwfd" "lhmr" "hhmr" "wob"])
 
 (def classes-in-order
-  ["open" "masters" "lightweight" "juniors" "womens" "womensmaster" "womensyouth" "amateurs"])
+  ["open" "masters" "lightweight" "juniors" "womens" "womensmaster" "womensyouth" "amateurs"
+   "womensjunior" "youth" "masters50+" "masters60+" "womensmaster50+" "womensmaster60+"])
 
 (defn ->int
   [s]
@@ -93,7 +100,13 @@
    "womenmasters" "womensmaster"
    "womenmaster" "womensmaster"
    "youth female" "womensyouth"
-   "womensyouth" "womensyouth"})
+   "womensyouth" "womensyouth"
+   "masters50+" "masters50+"
+   "masters60+" "masters60+"
+   "womensmaster50+" "womensmaster50+"
+   "womensmaster60+" "womensmaster60+"
+   "youth" "youth"
+   "womensjunior" "womensjunior"})
 
 (defn parse-clock-minutes
   [s]

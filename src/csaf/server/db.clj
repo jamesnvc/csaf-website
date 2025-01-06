@@ -136,6 +136,18 @@
     ["alter table game_results_placing drop constraint game_results_placing_pkey;
       alter table game_results_placing add primary key (member_id, game_instance_id, class)"]))
 
+(defn migrate-add-more-youth-juinor-masters-classes
+  []
+  (jdbc/execute!
+    @datasource
+    ["alter type membership_class_code add value 'womensjunior';
+      alter type membership_class_code add value 'youth';
+      alter type membership_class_code add value 'masters50+';
+      alter type membership_class_code add value 'masters60+';
+      alter type membership_class_code add value 'womensmaster50+';
+      alter type membership_class_code add value 'womensmaster60+';
+"]))
+
 ;;; member queries
 
 (defn authenticate-user
@@ -171,10 +183,14 @@
   (-> (jdbc/execute-one!
         @datasource
         ["select members.*, jsonb_agg(members_roles.role) as roles from members
-     join members_roles on members.id = members_roles.member_id
+     left join members_roles on members.id = members_roles.member_id
      where id = ? group by members.id" id]
         jdbc/snake-kebab-opts)
-      (update :roles set)))
+      (update :roles (comp #(disj % nil) set))))
+
+(comment
+  (member 1631)
+  )
 
 (defn generate-password
   []
@@ -1058,36 +1074,94 @@
 
 (def event-weight-limits
   "Minimum weights for events by class"
-  {"braemar" { "open" 22 "masters" 22 "amateurs" 22 "juniors" 22 "womens" 12 "womensmaster" 12 "lightweight" 22 "womensyouth" 6}
+  {"braemar" { "open" 22 "masters" 22 "amateurs" 22 "juniors" 22 "womens" 12 "womensmaster" 12 "lightweight" 22 "womensyouth" 6 "womensjunior" 8 "youth" 11 "masters50+" 18 "masters60+" 14 "womensmaster50+" 12 "womensmaster60+" 12}
    ;; there's a bug in the old database, where juinor's weight limit wasn't being read properly.
    ;; it's apparently supposed to be 12lb, but setting that breaks all prior scores...
-   "open"    { "open" 16 "masters" 16 "amateurs" 16 "juniors" 12 "womens" 8 "womensmaster" 8 "lightweight" 16 "womensyouth" 6}
-   "wob"     { "open" 56 "masters" 42 "amateurs" 56 "juniors" 42 "womens" 28 "womensmaster" 21 "lightweight" 42 "womensyouth" 14}
-   "hwfd"    { "open" 56 "masters" 42 "amateurs" 56 "juniors" 42 "womens" 28 "womensmaster" 21 "lightweight" 42 "womensyouth" 14}
-   "lwfd"    { "open" 28 "masters" 28 "amateurs" 28 "juniors" 28 "womens" 14 "womensmaster" 14 "lightweight" 28 "womensyouth" 9}
-   "lhmr"    { "open" 16 "masters" 16 "amateurs" 16 "juniors" 16 "womens" 12 "womensmaster" 12 "lightweight" 16 "womensyouth" 8}
-   "hhmr"    { "open" 22 "masters" 22 "amateurs" 22 "womens" 16 "womensmaster" 16 "lightweight" 22 "womensyouth" 12}
-   "sheaf"   { "open" 16 "masters" 16 "amateurs" 16 "womens" 10 "womensmaster" 10 "lightweight" 16 "womensyouth" 8}})
+   "open"    { "open" 16 "masters" 16 "amateurs" 16 "juniors" 12 "womens" 8 "womensmaster" 8 "lightweight" 16 "womensyouth" 6 "womensjunior" 8 "youth" 11 "masters50+" 14 "masters60+" 12 "womensmaster50+" 6 "womensmaster60+" 6}
+   "wob"     { "open" 56 "masters" 42 "amateurs" 56 "juniors" 42 "womens" 28 "womensmaster" 21 "lightweight" 42 "womensyouth" 14 "womensjunior" 21 "youth" 28 "masters50+" 42 "masters60+" 35 "womensmaster50+" 21 "womensmaster60+" 14}
+   "hwfd"    { "open" 56 "masters" 42 "amateurs" 56 "juniors" 42 "womens" 28 "womensmaster" 21 "lightweight" 42 "womensyouth" 14 "womensjunior" 21 "youth" 28 "masters50+" 42 "masters60+" 35 "womensmaster50+" 21 "womensmaster60+" 14}
+   "lwfd"    { "open" 28 "masters" 28 "amateurs" 28 "juniors" 28 "womens" 14 "womensmaster" 14 "lightweight" 28 "womensyouth" 9 "womensjunior" 14 "youth" 21 "masters50+" 28 "masters60+" 21 "womensmaster50+" 14 "womensmaster60+" 9}
+   "lhmr"    { "open" 16 "masters" 16 "amateurs" 16 "juniors" 16 "womens" 12 "womensmaster" 12 "lightweight" 16 "womensyouth" 8 "womensjunior" 12 "youth" 12 "masters50+" 16 "masters60+" 12 "womensmaster50+" 12 "womensmaster60+" 8}
+   "hhmr"    { "open" 22 "masters" 22 "amateurs" 22 "womens" 16 "womensmaster" 16 "lightweight" 22 "womensyouth" 12 "womensjunior" 16 "youth" 16 "masters50+" 16 "masters60+" 12 "womensmaster50+" 16 "womensmaster60+" 12}
+   "sheaf"   { "open" 16 "masters" 16 "amateurs" 16 "womens" 10 "womensmaster" 10 "lightweight" 16 "womensyouth" 8 "womensjunior" 10 "youth" 10 "masters50+" 16 "masters60+" 14 "womensmaster50+" 8 "womensmaster60+" 8}})
 
 (def event-class-standards
   "Womens master (and the other master's classes other than \"base\"
   masters) have a set standard, rather than being based on a record."
   {"braemar" {"womensmaster" {:distance (+ (* 36 12) 9) :weight 12}
-              "womensyouth" {:distance (+ (* 36 12) 9) :weight 6}}
+              "womensyouth" {:distance (+ (* 36 12) 9) :weight 6}
+              "womensmaster50+" {:distance (+ (* 26 12) 1.5) :weight 12}
+              "womensmaster60+" {:distance (+ (* 23 12) 1) :weight 12}
+              "masters50+" {:distance (+ (* 43 12) 6.5) :weight 22}
+              "masters60+" {:distance (+ (* 40 12) 0.5) :weight 16}
+              }
    "open" {"womensmaster" {:distance (+ (* 47 12) 7) :weight 8}
-           "womensyouth" {:distance (+ (* 47 12) 7) :weight 8}}
+           "womensyouth" {:distance (+ (* 47 12) 7) :weight 8}
+           "womensmaster50+" {:distance (+ (* 33 12) 5.5) :weight 8}
+           "womensmaster60+" {:distance (+ (* 30 12) 3) :weight 8}
+           "masters50+" {:distance (+ (* 49 12) 7) :weight 16}
+           "masters60+" {:distance (+ (* 40 12) 0.5) :weight 16}
+           }
    "wob" {"womensmaster" {:distance (+ (* 17 12) 6) :weight 28}
-         "womensyouth" {:distance (+ (* 17 12) 6) :weight 14}}
+          "womensyouth" {:distance (+ (* 17 12) 6) :weight 14}
+          "womensmaster50+" {:distance (+ (* 18 12) 3) :weight 21}
+          "womensmaster60+" {:distance (+ (* 18 12) 6) :weight 14}
+          "masters50+" {:distance (+ (* 20 12) 1) :weight 42}
+          "masters60+" {:distance (+ (* 17 12) 3) :weight 35}
+          }
    "hwfd" {"womensmaster" {:distance (+ (* 42 12) 7) :weight 28}
-          "womensyouth" {:distance (+ (* 42 12) 7) :weight 14}}
+           "womensyouth" {:distance (+ (* 42 12) 7) :weight 14}
+           "womensmaster50+" {:distance (+ (* 51 12) 5) :weight 21}
+           "womensmaster60+" {:distance (+ (* 51 12) 11.5) :weight 14}
+           "masters50+" {:distance (+ (* 56 12) 10) :weight 42}
+           "masters60+" {:distance (+ (* 42 12) 3) :weight 35}
+           }
    "lwfd" {"womensmaster" {:distance (+ (* 85 12) 2.5) :weight 14}
-          "womensyouth" {:distance (+ (* 85 12) 2.5) :weight 9}}
+           "womensyouth" {:distance (+ (* 85 12) 2.5) :weight 9}
+           "womensmaster50+" {:distance (+ (* 66 12) 3) :weight 14}
+           "womensmaster60+" {:distance (+ (* 68 12) 0) :weight 9}
+           "masters50+" {:distance (+ (* 79 12) 11) :weight 28}
+           "masters60+" {:distance (+ (* 63 12) 6) :weight 21}
+           }
    "lhmr" {"womensmaster" {:distance (+ (* 100 12) 5) :weight 12}
-          "womensyouth" {:distance (+ (* 100 12) 5) :weight 8}}
+           "womensyouth" {:distance (+ (* 100 12) 5) :weight 8}
+           "womensmaster50+" {:distance (+ (* 85 12) 11) :weight 12}
+           "womensmaster60+" {:distance (+ (* 83 12) 2) :weight 8}
+           "masters50+" {:distance (+ (* 132 12) 10) :weight 16}
+           "masters60+" {:distance (+ (* 105 12) 4.5) :weight 12}
+           }
    "hhmr" {"womensmaster" {:distance (+ (* 85 12) 7.5) :weight 16}
-          "womensyouth" {:distance (+ (* 85 12) 7.5) :weight 12}}
+           "womensyouth" {:distance (+ (* 85 12) 7.5) :weight 12}
+           "womensmaster50+" {:distance (+ (* 69 12) 7.5) :weight 16}
+           "womensmaster60+" {:distance (+ (* 63 12) 8.5) :weight 12}
+           "masters50+" {:distance (+ (* 99 12) 8.5) :weight 16}
+           "masters60+" {:distance (+ (* 105 12) 4.5) :weight 12}
+           }
    "sheaf" {"womensmaster" {:distance (+ (* 34 12) 2) :weight 10}
-            "womensyouth" {:distance (+ (* 34 12) 2) :weight 8}}})
+            "womensyouth" {:distance (+ (* 34 12) 2) :weight 8}
+            "womensmaster50+" {:distance (+ (* 29 12) 0) :weight 10}
+            "womensmaster60+" {:distance (+ (* 22 12) 0) :weight 10}
+            "masters50+" {:distance (+ (* 37 12) 6) :weight 16}
+            "masters60+" {:distance (+ (* 31 12) 0) :weight 12}
+            }})
+
+(def event-class-fallback
+  {"braemar" {"womensjunior" {:distance (+ (* 12 23) 1) :weight 8}
+              "youth" {:distance (+ (* 12 40) 9) :weight 11}}
+   "open" {"womensjunior" {:distance (+ (* 12 30) 3) :weight 8}
+           "youth" {:distance (+ (* 12 40) 0.5) :weight 11}}
+   "wob" {"womensjunior" {:distance (+ (* 12 18) 6) :weight 21}
+          "youth" {:distance (+ (* 12 17) 3) :weight 28}}
+   "hwfd" {"womensjunior" {:distance (+ (* 12 51) 11.5) :weight 21}
+           "youth" {:distance (+ (* 12 42) 3) :weight 28}}
+   "lwfd" {"womensjunior" {:distance (+ (* 12 68) 0) :weight 14}
+           "youth" {:distance (+ (* 12 63) 6) :weight 21}}
+   "lhmr" {"womensjunior" {:distance (+ (* 12 83) 2) :weight 12}
+           "youth" {:distance (+ (* 12 105) 4.5) :weight 12}}
+   "hhmr" {"womensjunior" {:distance (+ (* 12 63) 8.5) :weight 16}
+           "youth" {:distance (+ (* 12 105) 4.5) :weight 16}}
+   "sheaf" {"womensjunior" {:distance (+ (* 12 22) 0) :weight 10}
+            "youth" {:distance (+ (* 12 31) 0) :weight 10}}})
 
 (defn score-for-result
   ([class {:keys [year result]}]
@@ -1153,19 +1227,23 @@
 
        (and (not= "masters" class) (= "open" event))
        (let [best-dist (or (get-in event-class-standards [event class :distance])
-                      (x/select-first
-                        [x/ALL
-                         (x/if-path [:class (x/pred= class)] x/STAY)
-                         (x/if-path [:event (x/pred= event)] x/STAY)
-                         :distance-inches]
-                        event-records))
+                           (x/select-first
+                             [x/ALL
+                              (x/if-path [:class (x/pred= class)] x/STAY)
+                              (x/if-path [:event (x/pred= event)] x/STAY)
+                              :distance-inches]
+                             event-records))
              top-weight (or (get-in event-class-standards [event class :weight])
                             (x/select-one
                               [x/ALL
                                (x/if-path [:class (x/pred= class)] x/STAY)
                                (x/if-path [:event (x/pred= event)] x/STAY)
                                :weight]
-                              event-top-weights))]
+                              event-top-weights))
+             [best-dist top-weight] (if (and best-dist top-weight)
+                                      [best-dist top-weight]
+                                      ((juxt :distance :weight)
+                                       (get-in event-class-fallback [event class])))]
          (if (and best-dist top-weight class-weight-limit)
            (* 1000 (/ (+ (* 12 (- (float weight) class-weight-limit))
                          (float distance-inches))
@@ -1215,6 +1293,7 @@
                              :distance-inches]
                             event-records)
                           float)
+                  (get-in event-class-fallback [event class :distance])
                   ##Inf))
            (* 1000)
            (max 0))))))
@@ -1319,7 +1398,7 @@
        and game_member_results.event <> 'sheaf'
        and game_member_results.event <> 'braemar'
        and game_member_results.score > 0
-       and game_member_results.class = any('{juniors, amateurs, womens, womensmaster, masters, open, lightweight,womensyouth}')
+       and game_member_results.class <> any('{N/A, unknown}')
      window wnd as (partition by game_member_results.member_id, game_member_results.event, case when game_member_results.event = 'caber' then 1 else game_member_results.weight end
         order by score rows between unbounded preceding and unbounded following)
       ) union all (
@@ -1354,6 +1433,7 @@
       (reduce
         (fn [acc row]
           (let [cls (:class row)
+                _ (prn "CLASS" (:class row))
                 cls (if (= cls "amateurs") "open" cls)]
             (cond-> (process-row acc cls row)
 
@@ -1444,6 +1524,8 @@
     [(x/keypath "masters" 12)
      ]
     (rankings-for-year 2023))
+
+  (keys (rankings-for-year 2024))
 
   (supplemental-results-for-masters 12)
   (get-in (rankings-for-year 2023)

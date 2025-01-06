@@ -616,3 +616,43 @@ select count(*) from score_records_suggested
 | count(*) |
 |----------|
 |        4 |
+
+#+begin_src sql :engine mysql :dbhost localhost :dbport 3306 :dbuser root :dbpassword foobar :database csaf_dump
+select distinct class
+from score_placings
+#+end_src
+
+#+RESULTS:
+| class           |
+|-----------------|
+| NULL            |
+| Open            |
+| Womens          |
+| Amateurs        |
+| Masters         |
+| Juniors         |
+| Lightweight     |
+| Womensmaster    |
+| Masters50+      |
+| Masters60+      |
+| Womensmaster50+ |
+| Womensmaster60+ |
+
+#+begin_src sql :engine mysql :dbhost localhost :dbport 3306 :dbuser root :dbpassword foobar :database csaf_dump
+select eventName, classStandard from score_events
+#+end_src
+
+#+RESULTS:
+| eventName                 | classStandard                                                                                                         |
+|---------------------------+-----------------------------------------------------------------------------------------------------------------------|
+| Braemar Stone             | WomensMaster:36'9-12,WomensMaster50+:26'1.5-12,WomensMaster60+:23'1-12,Masters50+:43'6.5-22,Masters60+:40'0.5-16      |
+| Open Stone                | WomensMaster:47'7-8,WomensMaster50+:33'5.5-8,WomensMaster60+:30'3-8,Masters50+:49'7-16,Masters60+:40'0.5-16           |
+| Weight Over Bar           | WomensMaster:17'6-28,WomensMaster50+:18'3-21,WomensMaster60+:18'6-14,Master50+:20'1-42,Master60+:17'3-35\n          |
+| Heavy Weight for Distance | WomensMaster:42'7-28,WomensMaster50+:51'5-21,WomensMaster60+:51'11.5-14,Masters50+:56'10-42,Masters60+:42'1-35        |
+| Light Weight for Distance | WomensMaster:85'2.5-14,WomensMaster50+:66'3-14,WomensMaster60+:68'-9,Masters50+:79'11-28,Masters60+:63'6-21           |
+| Light Hammer              | WomensMaster:100'5-12,WomensMaster50+:85'11-12,WomensMaster60+:83'2-8,Masters50+:132'10-16,Masters60+:105'4.5-12      |
+
+| Heavy Hammer              | WomensMaster:85'7.5-16,WomensMaster50+:69'7.5-16,WomensMaster60+:63'8.5-12,Masters50+:99'8.5-16,Masters60+:105'4.5-12 |
+
+| Caber                     |                                                                                                                       |
+| Sheaf                     | WomensMaster:34'2-10,WomensMaster50+:29'-10,WomensMaster60+:22'-10,Masters50+:37'6-16,Masters60+:31'-12               |

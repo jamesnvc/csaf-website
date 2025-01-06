@@ -203,7 +203,7 @@
            [:thead
             [:tr
              [:th {:tw "font-normal text-sm text-gray-500"}
-              (some-> class string/capitalize)]]
+              (some-> class results/display-class)]]
             [:tr [:th ""]
              [:th "Name"] [:th "Place"]
              (for [event-name results/events-in-order]

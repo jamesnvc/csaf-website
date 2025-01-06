@@ -36,7 +36,13 @@ do $$
         'masters',
         'womens',
         'womensmaster',
-        'womensyouth'
+        'womensyouth',
+        'womensjunior',
+        'youth',
+        'masters50+',
+        'masters60+',
+        'womensmaster50+',
+        'womensmaster60+',
         );
     end if;
 end$$;
