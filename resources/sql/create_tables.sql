@@ -42,7 +42,7 @@ do $$
         'masters50+',
         'masters60+',
         'womensmaster50+',
-        'womensmaster60+',
+        'womensmaster60+'
         );
     end if;
 end$$;
