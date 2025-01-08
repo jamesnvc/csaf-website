@@ -1,5 +1,3 @@
-BEGIN;
-
 do $$
   begin
     if not exists (select 1 from pg_type where typname = 'membership_status') then
@@ -229,5 +227,3 @@ create table if not exists pages (
    "title" text not null primary key,
    "content" text not null default ''
 );
-
-COMMIT;
