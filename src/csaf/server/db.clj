@@ -1433,7 +1433,6 @@
       (reduce
         (fn [acc row]
           (let [cls (:class row)
-                _ (prn "CLASS" (:class row))
                 cls (if (= cls "amateurs") "open" cls)]
             (cond-> (process-row acc cls row)
 
