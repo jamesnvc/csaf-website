@@ -1,6 +1,7 @@
 (ns csaf.client.athletes
   (:require
    [clojure.string :as string]
+   [com.rpl.specter :as x]
    [csaf.util :refer [?>]]
    [csaf.client.styles :as styles]
    [csaf.client.results :as results
@@ -74,7 +75,6 @@
                (string/join " "))]
          [:td (str (:game-instances/date result))]])]]]
 
-
    [:div.record
     [:h3 {:tw "text-lg text-gray-500"} "GAMES RECORD"]
     [:table
@@ -82,6 +82,7 @@
       [:tr
        [:th "Date"]
        [:th "Location"]
+       [:th "Class"]
        [:th "Place"]
        (for [evt events-in-order]
          [:th (results/abbrev-event-name evt)])]]
@@ -90,6 +91,11 @@
         [:tr
          [:td (str (:game-instances/date game))]
          [:td {:tw "text-sm"} (:game-name game)]
+         [:td {:tw "text-sm"} (->> game
+                                   (x/select [:result x/MAP-VALS :class])
+                                   set
+                                   (map results/display-class)
+                                   (string/join " "))]
          [:td (pr-str (:placing game))]
          (for [event-name events-in-order
                :let [result (get-in game [:result event-name])]]
