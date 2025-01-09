@@ -1377,16 +1377,16 @@
     (->>
       (jdbc/plan
         @datasource
-        ["(select distinct
-        last_value(game_member_results.class) over wnd as class,
-        last_value(game_member_results.score) over wnd as score,
-        last_value(game_member_results.event) over wnd as event,
-        last_value(game_member_results.member_id) over wnd as member_id,
-        last_value(game_member_results.distance_inches) over wnd as distance_inches,
-        last_value(game_member_results.clock_minutes) over wnd as clock_minutes,
-        last_value(game_member_results.weight) over wnd as weight,
-        last_value(members.first_name) over wnd as first_name,
-        last_value(members.last_name) over wnd as last_name,
+        ["(select
+        game_member_results.class as class,
+        game_member_results.score as score,
+        game_member_results.event as event,
+        game_member_results.member_id as member_id,
+        game_member_results.distance_inches as distance_inches,
+        game_member_results.clock_minutes as clock_minutes,
+        game_member_results.weight as weight,
+        members.first_name as first_name,
+        members.last_name as last_name,
         (extract(\"year\" from members.birth_date + '40 years'::interval) <= ? or
             extract(\"year\" from members.master_first_date) <= ?) as masters_age
      from game_member_results
@@ -1395,24 +1395,20 @@
      where extract(\"year\" from game_instances.\"date\") = ?
        and members.country = any(ARRAY['Canada', ''])
        and members.status = 'active'
-       and game_member_results.event <> 'sheaf'
-       and game_member_results.event <> 'braemar'
+       and game_member_results.event <> all('{sheaf,braemar}')
        and game_member_results.score > 0
-       and game_member_results.class <> any('{N/A, unknown}')
-     window wnd as (partition by game_member_results.member_id, game_member_results.event, case when game_member_results.event = 'caber' then 1 else game_member_results.weight end
-        order by score rows between unbounded preceding and unbounded following)
-      ) union all (
+       and game_member_results.class <> all('{N/A, unknown}')) union all (
        -- get open results for masters that have just reached 40 this year
-       select distinct
-        last_value(game_member_results.class) over wnd as class,
-        last_value(game_member_results.score) over wnd as score,
-        last_value(game_member_results.event) over wnd as event,
-        last_value(game_member_results.member_id) over wnd as member_id,
-        last_value(game_member_results.distance_inches) over wnd as distance_inches,
-        last_value(game_member_results.clock_minutes) over wnd as clock_minutes,
-        last_value(game_member_results.weight) over wnd as weight,
-        last_value(members.first_name) over wnd as first_name,
-        last_value(members.last_name) over wnd as last_name,
+       select
+        game_member_results.class as class,
+        game_member_results.score as score,
+        game_member_results.event as event,
+        game_member_results.member_id as member_id,
+        game_member_results.distance_inches as distance_inches,
+        game_member_results.clock_minutes as clock_minutes,
+        game_member_results.weight as weight,
+        members.first_name as first_name,
+        members.last_name as last_name,
         true as masters_age
      from game_member_results
      join members on game_member_results.member_id = members.id
@@ -1422,13 +1418,9 @@
        and extract(\"year\" from game_instances.date) = ?
        and members.country = any(ARRAY['Canada', ''])
        and members.status = 'active'
-       and game_member_results.event <> 'sheaf'
-       and game_member_results.event <> 'braemar'
+       and game_member_results.event <> all('{sheaf,braemar}')
        and game_member_results.score > 0
-       and game_member_results.class = any('{open, womens}')
-     window wnd as (partition by game_member_results.member_id, game_member_results.event,
-          case when game_member_results.event = 'caber' then 1 else game_member_results.weight end
-        order by score rows between unbounded preceding and unbounded following))"
+       and game_member_results.class = any('{open, womens}'))"
          year year year year year year])
       (reduce
         (fn [acc row]
