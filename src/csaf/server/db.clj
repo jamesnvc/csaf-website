@@ -1388,7 +1388,9 @@
         members.first_name as first_name,
         members.last_name as last_name,
         (extract(\"year\" from members.birth_date + '40 years'::interval) <= ? or
-            extract(\"year\" from members.master_first_date) <= ?) as masters_age
+            extract(\"year\" from members.master_first_date) <= ?) as masters_age,
+        extract(\"year\" from members.birth_date + '50 years'::interval) as masters50_age,
+        extract(\"year\" from members.birth_date + '60 years'::interval) as masters60_age
      from game_member_results
      join members on game_member_results.member_id = members.id
      join game_instances on game_member_results.game_instance = game_instances.id
@@ -1409,7 +1411,9 @@
         game_member_results.weight as weight,
         members.first_name as first_name,
         members.last_name as last_name,
-        true as masters_age
+        true as masters_age,
+        extract(\"year\" from members.birth_date + '50 years'::interval) as masters50_age,
+        extract(\"year\" from members.birth_date + '60 years'::interval) as masters60_age
      from game_member_results
      join members on game_member_results.member_id = members.id
      join game_instances on game_member_results.game_instance = game_instances.id
@@ -1431,7 +1435,8 @@
               ;; for the masters class, if the athlete is masters
               ;; age, get best open result, calculate as masters,
               ;; use if better
-              (and (= cls "open") (:masters_age row))
+              (or (and (= cls "open") (:masters_age row))
+                  (= cls "masters50+"))
               (process-row
                 "masters"
                 (assoc
@@ -1447,7 +1452,7 @@
               ;; for the open class, if athlete is also
               ;; masters-age, get the best masters result
               ;; & re-score it as open, use if better
-              (= cls "masters")
+              (or (= cls "masters") (= cls "masters50+") (= cls "masters60+"))
               (process-row
                 "open"
                 (assoc
@@ -1460,7 +1465,22 @@
                                           :clock-minutes (:clock_minutes row)}
                     bests weights)))
 
-              (and (= cls "womens") (:masters_age row))
+              (and (or (= cls "open") (= cls "masters"))
+                   (:masters50_age row))
+              (process-row
+                "masters50+"
+                (assoc
+                  row :score
+                  (score-for-result
+                    "masters50+" year
+                    #:game-member-results{:event (:event row)
+                                          :weight (:weight row)
+                                          :distance-inches (:distance_inches row)
+                                          :clock-minutes (:clock_minutes row)}
+                    bests weights)))
+
+              (or (and (= cls "womens") (:masters_age row))
+                  (= cls "womensmaster50+"))
               (process-row
                 "womensmaster"
                 (assoc
@@ -1473,7 +1493,7 @@
                                           :clock-minutes (:clock_minutes row)}
                     bests weights)))
 
-              (= cls "womensmaster")
+              (or (= cls "womensmaster") (= cls "womensmaster50+") (= cls "womensmaster60+"))
               (process-row
                 "womens"
                 (assoc
@@ -1485,6 +1505,21 @@
                                           :distance-inches (:distance_inches row)
                                           :clock-minutes (:clock_minutes row)}
                     bests weights)))
+
+              (and (or (= cls "womens") (= cls "womensmaster"))
+                   (:masters50_age row))
+              (process-row
+                "womensmaster50+"
+                (assoc
+                  row :score
+                  (score-for-result
+                    "womensmaster50+" year
+                    #:game-member-results{:event (:event row)
+                                          :weight (:weight row)
+                                          :distance-inches (:distance_inches row)
+                                          :clock-minutes (:clock_minutes row)}
+                    bests weights)))
+
               )))
         {})
       (x/transform
