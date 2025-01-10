@@ -1389,8 +1389,8 @@
         members.last_name as last_name,
         (extract(\"year\" from members.birth_date + '40 years'::interval) <= ? or
             extract(\"year\" from members.master_first_date) <= ?) as masters_age,
-        extract(\"year\" from members.birth_date + '50 years'::interval) as masters50_age,
-        extract(\"year\" from members.birth_date + '60 years'::interval) as masters60_age
+        extract(\"year\" from members.birth_date + '50 years'::interval) <= ? as masters50_age,
+        extract(\"year\" from members.birth_date + '60 years'::interval) <= ? as masters60_age
      from game_member_results
      join members on game_member_results.member_id = members.id
      join game_instances on game_member_results.game_instance = game_instances.id
@@ -1412,8 +1412,8 @@
         members.first_name as first_name,
         members.last_name as last_name,
         true as masters_age,
-        extract(\"year\" from members.birth_date + '50 years'::interval) as masters50_age,
-        extract(\"year\" from members.birth_date + '60 years'::interval) as masters60_age
+        extract(\"year\" from members.birth_date + '50 years'::interval) <= ? as masters50_age,
+        extract(\"year\" from members.birth_date + '60 years'::interval) <= ? as masters60_age
      from game_member_results
      join members on game_member_results.member_id = members.id
      join game_instances on game_member_results.game_instance = game_instances.id
@@ -1425,7 +1425,7 @@
        and game_member_results.event <> all('{sheaf,braemar}')
        and game_member_results.score > 0
        and game_member_results.class = any('{open, womens}'))"
-         year year year year year year])
+         year year year year year year year year year year])
       (reduce
         (fn [acc row]
           (let [cls (:class row)
