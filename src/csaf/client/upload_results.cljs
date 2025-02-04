@@ -26,6 +26,11 @@
                                nil ""
                                (str "/members/sheet/" (:score-sheets/id new-sheet))))}))
 
+(defn format-date
+  [date]
+  (.format (js/Intl.DateTimeFormat. js/undefined #js {:timeZone "UTC"})
+           date))
+
 (defn admin-sheet-item-view
   [{:score-sheets/keys [id created-at games-id games-date status]
     :members/keys [first-name last-name]}]
@@ -44,13 +49,13 @@
                                       :games/name)]
                           app-state)]
           [:span game-name
-           (when games-date (str " @ " (.toLocaleDateString games-date)))])
+           (when games-date (str " @ " (format-date games-date)))])
         " "
         [:span {:tw "text-sm text-gray-500"}
          "Submitted by " first-name " " last-name]
         " "
         [:span {:tw "text-sm text-gray-400"}
-         "Created " (.toLocaleDateString created-at)]
+         "Created " (format-date created-at)]
         " "
         [:span {:tw "text-sm"}
          (case status
@@ -141,11 +146,11 @@
                                               :games/name)]
                                   app-state)]
                   [:span game-name
-                   (when games-date (str " @ " (.toLocaleDateString games-date)))])
+                   (when games-date (str " @ " (format-date games-date)))])
                 "New Results Sheet")
               " "
               [:span {:tw "text-sm text-gray-400"}
-               "Created " (.toLocaleDateString created-at)]
+               "Created " (format-date created-at)]
               " "
               [:span {:tw "text-sm"}
                (case status
