@@ -349,6 +349,15 @@
           {:status 400})
         {:status 403}))]
 
+   [[:delete "/api/score-sheets/:id"]
+    (fn [req]
+      (if (user-is-admin? req)
+        (if-let [sheet-id (->int (get-in req [:params :id]))]
+          {:status 200
+           :body (db/delete-sheet! sheet-id)}
+          {:status 400})
+        {:status 403}))]
+
    [[:post "/api/score-sheets/:id/submit"]
     (fn [req]
       (if-let [user-id (get-in req [:session :user-id])]

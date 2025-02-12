@@ -572,7 +572,7 @@
 
        [sheet-preview-view sheet member-names]
 
-       [:div.submit
+       [:div.submit {:tw "flex flex-row gap-4"}
 
         (cond
           (and (= "complete" (:score-sheets/status sheet))
@@ -675,7 +675,21 @@
               "Cancel & Continue Editing"]]
             "approved"
             [:span "Results approved & in the database"]
-            nil ""))]])))
+            nil ""))
+
+        (when (and (:admin-view @app-state)
+                   (= "complete" (:score-sheets/status sheet)))
+          [:button {:tw "text-red-500"
+                    :on-click (fn [] (when (js/confirm "Delete this uploaded sheet?")
+                                       (ajax/request {:method :delete
+                                                      :uri (str "/api/score-sheets/" (:score-sheets/id sheet))
+                                                      :credentials? true
+                                                      :on-success (fn [_]
+                                                                    (swap! app-state dissoc :active-sheet)
+                                                                    (swap! app-state update :score-sheets dissoc (:score-sheets/id sheet))
+                                                                    (swap! app-state update :submitted-sheets dissoc (:score-sheets/id sheet))
+                                                                    (.pushState js/history nil "" "/members"))})))}
+           "Delete Sheet"])]])))
 
 (defn upload-results-view
   []

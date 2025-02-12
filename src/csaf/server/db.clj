@@ -660,6 +660,12 @@
      member-id]
     jdbc/snake-kebab-opts))
 
+(defn delete-sheet!
+  [sheet-id]
+  (jdbc/execute!
+    @datasource
+    ["delete from score_sheets where id = ?" sheet-id]))
+
 (defn update-sheet-for-user
   [{:keys [user-id sheet-id sheet]}]
   (let [res (jdbc/execute-one!
