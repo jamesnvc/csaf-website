@@ -21,6 +21,11 @@ server {
         return 301 $scheme://www.csaf.ca$request_uri;
     }
 
+    location /static-docs/ {
+        gzip_static on;
+        alias /var/www/csaf-docs/;
+    }
+
     location / {
         limit_req zone=csaflimit burst=10 nodelay;
         proxy_pass http://csaf;
