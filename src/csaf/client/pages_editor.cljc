@@ -41,7 +41,6 @@ class FixedLink extends Link {
     if (!value.startsWith('http')) {
       node.removeAttribute('rel');
     }
-    console.log('creating link', value, node);
     return node;
   }
 }
