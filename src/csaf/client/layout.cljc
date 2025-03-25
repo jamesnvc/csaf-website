@@ -36,7 +36,13 @@
           [:li [:a {:tw a-tw :href "/rankings"} "Rankings"]]
           [:li [:a {:tw a-tw :href "/records"} "Records"]]]]]
         [:a {:tw a-tw :href "/page/information"} "Information"]
-        [:a {:tw a-tw :href "/page/about-csaf"} "About CSAF"]
+        [:details {:open true :tw details-tw}
+         [:summary {:tw a-tw :href "/"}
+          "About CSAF"]
+         [:div {:tw details-content-tw}
+          [:ul {:tw "list-none p-2 w-full"}
+           [:li [:a {:tw a-tw :href "/page/about-csaf"} "History of CSAF"]]
+           [:li [:a {:tw a-tw :href "/page/meeting-minutes"} "Minutes"]]]]]
         [:a {:tw a-tw :href "/page/contact-us"} "Contact Us"]])]]
    [:div {:tw "flex-grow"} content]
    [:footer {:tw "self-end mx-4 flex flex-row gap-3 items-center"}
