@@ -155,7 +155,7 @@
   (when-let [{:members/keys [id password-hash]}
              (jdbc/execute-one!
                @datasource
-               ["select id, password_hash from members where login = ?"
+               ["select id, password_hash from members where login = ? and status = 'active'"
                 login]
                jdbc/snake-kebab-opts)]
        (when (bcrypt/check password password-hash)
