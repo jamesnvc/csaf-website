@@ -949,8 +949,7 @@
              last_value(status) over wnd as status
            from event_records where should_display
            window wnd as (partition by class, event, weight order by year
-            rows between unbounded preceding and unbounded following)"]
-         jdbc/snake-kebab-opts)
+            rows between unbounded preceding and unbounded following)"])
        (reduce
          (fn [acc row]
            (->> #:event-record{:id (:id row)
