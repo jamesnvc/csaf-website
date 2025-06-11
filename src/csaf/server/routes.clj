@@ -135,8 +135,8 @@
     (fn [req]
       {:status 200
        :headers {"Content-Type" "text/html; charset=utf-8"}
-       :body (-> (db/current-records)
-                 records/records-view
+       :body (-> (records/records-view {:records (db/current-records)
+                                        :top-results (db/current-best-throws)})
                  (layout/layout (logged-in-user req))
                  page)})
     []]

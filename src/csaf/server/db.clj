@@ -967,6 +967,46 @@
                            (fnil conj []))))
          {})))
 
+(defn current-best-throws
+  []
+  (let [top-results (jdbc/execute!
+                      @datasource
+                      ["select distinct first_value(id) over wnd as id,
+                        first_value(class) over wnd as class,
+                        first_value(event) over wnd as event,
+                        first_value(score) over wnd as score
+                       from game_member_results
+                         where event <> 'caber'
+                         window wnd as (partition by class, event order by score desc
+                           rows between unbounded preceding and unbounded following)"])]
+    (->> (jdbc/plan
+           @datasource
+           ["select members.id, members.first_name, members.last_name,
+            game_member_results.class, game_member_results.event,
+            game_member_results.score, game_member_results.distance_inches,
+            game_member_results.weight,
+            games.name, game_instances.date
+        from game_member_results
+         join members on members.id = game_member_results.member_id
+         join game_instances on game_instances.id = game_member_results.game_instance
+         join games on games.id = game_instances.game_id
+        where game_member_results.id = any(ARRAY[?])"
+            (->pg-ints (map :id top-results))])
+         (reduce
+           (fn [acc row]
+             (->> {:members/id (:id row)
+                   :members/first-name (:first_name row)
+                   :members/last-name (:last_name row)
+                   :game-member-results/class (:class row)
+                   :game-member-results/event (:event row)
+                   :game-member-results/score (:score row)
+                   :game-member-results/distance-inches (:distance_inches row)
+                   :game-member-results/weight (:weight row)
+                   :games/name (:name row)
+                   :game-instances/date (:date row)}
+                  (update-in acc [(:class row) (:event row)] (fnil conj []))))
+           {}))))
+
 (defn submit-new-record-for-approval
   [{:keys [class event athlete-name distance-inches weight year comment]}]
   (jdbc/execute!

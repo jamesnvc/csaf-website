@@ -2,40 +2,95 @@
   (:require
    [clojure.math :as math]
    [clojure.string :as string]
+   [com.rpl.specter :as x]
    [csaf.client.results :as results]
    [csaf.util :as util]))
 
-(defn records-view
+(defn real-records-view
   [records]
   [:div {:tw "flex flex-col gap-4"}
-   [:p "Records marked with ** indicate a current world record"]
-   (for [cls results/classes-in-order
-         :let [class-records (get records cls)]
-         :when (seq class-records)]
-     [:div
-      [:h2 {:tw "text-center text-lg text-gray-500 font-smallcaps"}
-       (string/capitalize cls)]
-      [:table
-       [:thead
-        [:th "Event"]
-        [:th "Athlete"]
-        [:th "Distance"]
-        [:th "Weight"]
-        [:th "Year"]
-        [:th "Comment"]]
-       [:tbody
-        (for [event results/events-in-order
-              :let [event-records (get class-records event)]
-              record event-records
-              :when (some? record)]
-          [:tr
-           [:td (results/display-event-name event)]
-           [:td (:event-record/athlete-name record)]
-           [:td (results/display-distance
-                  (:event-record/distance-inches record))]
-           [:td (results/display-weight (:event-record/weight record))]
-           [:td (:event-record/year record)]
-           [:td {:tw "text-sm"} (:event-record/comment record)]])]]])])
+     [:p "Records marked with ** indicate a current world record"]
+     (for [cls results/classes-in-order
+           :let [class-records (get records cls)]
+           :when (seq class-records)]
+       [:div
+        [:h2 {:tw "text-center text-lg text-gray-500 font-smallcaps"}
+         (results/display-class cls)]
+        [:table
+         [:thead
+          [:th "Event"]
+          [:th "Athlete"]
+          [:th "Distance"]
+          [:th "Weight"]
+          [:th "Year"]
+          [:th "Comment"]]
+         [:tbody
+          (for [event results/events-in-order
+                :let [event-records (get class-records event)]
+                record event-records
+                :when (some? record)]
+            [:tr
+             [:td (results/display-event-name event)]
+             [:td (:event-record/athlete-name record)]
+             [:td (results/display-distance
+                    (:event-record/distance-inches record))]
+             [:td (results/display-weight (:event-record/weight record))]
+             [:td (:event-record/year record)]
+             [:td {:tw "text-sm"} (:event-record/comment record)]])]]])])
+
+(defn top-non-record-results
+  [{:keys [records top-results]}]
+  (let [non-record-results (->> top-results
+                                (x/setval
+                                  [x/MAP-VALS x/MAP-VALS
+                                   x/ALL
+                                   (x/if-path
+                                     (fn [res]
+                                       (some? (get-in records [(:game-member-results/class res)
+                                                               (:game-member-results/event res)])))
+                                     x/STAY)]
+                                  x/NONE)
+                                (x/setval
+                                  [x/MAP-VALS
+                                   (x/if-path (x/pred #(every? empty? (vals %)))
+                                              x/STAY)]
+                                  x/NONE))]
+    [:div {:tw "flex flex-col gap-4"}
+     [:p "Current top results that are not official records"]
+     (for [cls results/classes-in-order
+           :let [class-results (get non-record-results cls)]
+           :when (seq class-results)]
+       [:div
+        [:h2 {:tw "text-center text-lg text-gray-500 font-smallcaps"}
+         (results/display-class cls)]
+        [:table
+         [:thead
+          [:th "Event"]
+          [:th "Athlete"]
+          [:th "Distance"]
+          [:th "Weight"]
+          [:th "Date"]]
+         [:tbody
+          (for [event results/events-in-order
+                :let [event-results (get class-results event)]
+                result event-results
+                :when (some? result)]
+            [:tr
+             [:td (results/display-event-name event)]
+             [:td (:members/last-name result) ", " (:members/first-name result)]
+             [:td (results/display-distance
+                    (:game-member-results/distance-inches result))]
+             [:td (results/display-weight
+                    (:game-member-results/weight result))]
+             [:td (str (:game-instances/date result))]])]]])]))
+
+(defn records-view
+  [{:keys [records top-results]}]
+  [:div {:tw "flex flex-col gap-4"}
+   [real-records-view records]
+   [:hr]
+   [top-non-record-results {:top-results top-results
+                            :records records}]])
 
 (defn submit-record-view
   [{:keys [members error message data approving?]}]
