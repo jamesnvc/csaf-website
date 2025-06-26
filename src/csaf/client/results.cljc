@@ -117,7 +117,7 @@
   [s]
   (if (re-matches #"\d+" s)
     (->float s)
-    (let [[_ ft ins] (re-matches #"(\d+)'(?:(\d+(?:[.]\d+)?)?\")?" s)
+    (let [[_ ft ins] (re-matches #"(\d+)['’](?:(\d+(?:[.]\d+)?)?\")?" s)
           d (when (->int ft)
               (+ (* 12 (->int ft))
                  (or (some-> ins (->float)) 0)))]
@@ -126,6 +126,7 @@
 (comment
   (string/replace "50'" #"[^0-9]+$" "")
   (->int "50'")
+  (parse-distance "16’")
   )
 
 (defn result-row->game-results
