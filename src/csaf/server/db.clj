@@ -805,9 +805,9 @@
           year (+ 1900 (.getYear (:score-sheets/games-date sheet)))
           year-bests (event-records-for-year-by-class year)
           year-weights (event-top-weights-for-year-by-class year)]
-      (jdbc/execute!
-        @datasource
-        ["with new_game_instance as (insert into game_instances (game_id, date, source_sheet_id)
+      (let [result (jdbc/execute!
+                     @datasource
+                     ["with new_game_instance as (insert into game_instances (game_id, date, source_sheet_id)
                                      values (?, ?, ?) returning *),
 
           new_results as (
@@ -830,37 +830,39 @@
               join new_game_instance on true)
 
             update score_sheets set status = 'approved' where id = ?"
-         (:score-sheets/games-id sheet)
-         (:score-sheets/games-date sheet)
-         (:score-sheets/id sheet)
+                      (:score-sheets/games-id sheet)
+                      (:score-sheets/games-date sheet)
+                      (:score-sheets/id sheet)
 
-         (vec
-           (for [result results
-                 [event event-result] (:events result)
-                 :when (and (some? (:distance-inches event-result))
-                            (some? (:weight event-result)))]
-             {:member_id (:members/id result)
-              :event event
-              :distance_inches (:distance-inches event-result)
-              :clock_minutes (:clock-minutes event-result)
-              :weight (:weight event-result)
-              :score (score-for-result
-                       (:class result)
-                       year
-                       #:game-member-results{:event event
-                                             :weight (:weight event-result)
-                                             :distance-inches (:distance-inches event-result)
-                                             :clock-minutes (:clock-minutes event-result)}
-                       year-bests
-                       year-weights)
-              :class (:class result)}))
+                      (vec
+                        (for [result results
+                              [event event-result] (:events result)
+                              :when (and (some? (:distance-inches event-result))
+                                         (some? (:weight event-result)))]
+                          {:member_id (:members/id result)
+                           :event event
+                           :distance_inches (:distance-inches event-result)
+                           :clock_minutes (:clock-minutes event-result)
+                           :weight (:weight event-result)
+                           :score (score-for-result
+                                    (:class result)
+                                    year
+                                    #:game-member-results{:event event
+                                                          :weight (:weight event-result)
+                                                          :distance-inches (:distance-inches event-result)
+                                                          :clock-minutes (:clock-minutes event-result)}
+                                    year-bests
+                                    year-weights)
+                           :class (:class result)}))
 
-         (vec (for [result results]
-                {:member_id (:members/id result)
-                 :placing (:placing result)
-                 :class (:class result)}))
+                      (vec (for [result results]
+                             {:member_id (:members/id result)
+                              :placing (:placing result)
+                              :class (:class result)}))
 
-         sheet-id]))))
+                      sheet-id])]
+        (update-should-be-masters)
+        result))))
 
 (comment
 
