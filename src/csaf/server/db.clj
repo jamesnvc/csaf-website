@@ -303,6 +303,17 @@
            (into {} (map (fn [r] [(:event r) r]))
                  results)))))
 
+(defn update-should-be-masters
+  []
+  (jdbc/execute!
+    @datasource
+    ["update members set master_age = true where master_age is false
+    and exists (select true from game_member_results
+      where member_id = members.id and
+        class = any(ARRAY['masters', 'womensmaster', 'masters50+', 'masters60+',
+                          'womensmaster50+', 'womensmaster60+'
+                         ]::membership_class_code[]))"]))
+
 (comment
   (first (member-game-results 958))
   )
