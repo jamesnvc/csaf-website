@@ -75,6 +75,7 @@
     @datasource
     [(slurp (io/resource "sql/create_tables.sql"))]))
 
+
 ;;; Migrations
 
 (defn migrate-member-passwords!
@@ -212,6 +213,26 @@
     new-pass))
 
 (comment
+
+  (reset-member-password! 1557)
+  "octoad-turmoil-corbeau"
+  (member 1557)
+  {:members/date-added #inst "2023-08-11T03:55:55.000000000-00:00", :members/telephone nil, :members/password-hash "$2a$11$Wv3v9b/m21cT/bl3n7HAWeGDorDvF652DciDLJ0LcJ.XISAU0dBJi", :members/cell nil, :members/master-age false, :members/height nil, :members/image-file nil, :members/birth-date nil, :members/login "Renyard.Renyard", :roles #{"member"}, :members/postal-code nil, :members/tartan nil, :members/banned-start-date nil, :members/class "open", :members/weight nil, :members/address-2 nil, :members/last-name "Renyard", :members/username nil, :members/master-first-date nil, :members/province nil, :members/biography nil, :members/first-name "Nic", :members/country "Canada", :members/banned-end-date nil, :members/city nil, :members/region nil, :members/games-list nil, :members/email nil, :members/id 1557, :members/address-1 nil, :members/status "active", :members/site-code "member"}
+
+  (jdbc/execute!
+    @datasource
+    ["select id, password_hash from members where login = ?"
+     "Renyard.Renyard"]
+    jdbc/snake-kebab-opts)
+
+  (jdbc/execute!
+    @datasource
+    ["select login, status from members join members_roles on member_id = members.id where role = 'admin'"])
+
+  (jdbc/execute!
+    @datasource
+    ["select login, status from members where status = 'inactive'"])
+
   (member 1442)
   #_(jdbc/execute!
     @datasource
@@ -265,8 +286,10 @@
 
   (jdbc/execute!
     @datasource
-    ["select members.login from members join members_roles on member_id = id
+    ["select members.id, members.login from members join members_roles on member_id = id
       where role = 'admin'"])
+
+  (reset-member-password! 1613)
   )
 
 (defn member-roles
@@ -510,10 +533,69 @@
   (merge-members! [1557 1460])
 
 
+  ;; Erinn Doyle & Erinn Quinn => Erinn Doyle
+  (merge-members! [1625 918])
+
+  ;; Liz MacDonald & Liz King => Liz King
+  (merge-members! [1618 967])
+
+  ;; fix typo Katilyn Clark => Kaitlyn Clark
+  (merge-members! [1160 1602])
+  ;; Kaitlyn Clark => Murphy
+  (jdbc/execute! @datasource ["update members set last_name = 'Murphy' where id = 1160"])
+
+  ;; Banyan Layman + Banyan Lehman => Banyan Lehman
+  (merge-members! [1445 1609])
+
+  ;; Matthew McFadden + Matt MacFaden => Matthew McFadden
+  (merge-members! [1509 1484])
+
+  ;; Anna Reiner/Rainer => Anna Reiner
+  (merge-members! [1612 1633])
+
+  (jdbc/execute! @datasource ["select id, username, first_name, last_name from members where last_name = 'Hren'"])
+
+  (jdbc/execute! @datasource ["select id, login, first_name, last_name from members where login = 'Hren.Hren'"])
+
+  (:members/login (member 1095))
+
+  (jdbc/execute!
+    @datasource
+    ["update members set login = 'KarlH' where id = 1095"])
+
+  (reset-member-password! 1095)
+
+  (:members/login (member 1270))
+
+  (:members/login (member 18))
+  (jdbc/execute!
+    @datasource
+    ["select id, login, first_name, last_name from members where login = ?"
+     (:members/login (member 18))])
+
+  (reset-member-password! 1270)
+
+  (jdbc/execute!
+    @datasource
+    ["update members set login = 'Devon.Hepburn' where id = 1270"])
+
+  (jdbc/execute! @datasource ["select id, login, first_name, last_name from members where login = 'Devon.Hepburn'"])
   ;; Test users
   (jdbc/execute!
     @datasource
     ["update members set status = 'inactive' where id = any('{1531, 1532}')"])
+
+  (member 1017)
+  (jdbc/execute!
+    @datasource
+    ["update members set login = 'MacDonald.Garry' where id = 1017"])
+
+  (reset-member-password! 1017)
+
+  (jdbc/execute!
+    @datasource
+    ["select id, login, first_name, last_name from members where login = ?"
+     (:members/login (member 1017))])
   )
 
 ;;; Games queries
@@ -1019,6 +1101,10 @@
                    :game-instances/date (:date row)}
                   (update-in acc [(:class row) (:event row)] (fnil conj []))))
            {}))))
+
+(comment
+  (clojure.pprint/pprint (current-best-throws))
+  )
 
 (defn submit-new-record-for-approval
   [{:keys [class event athlete-name distance-inches weight year comment]}]
@@ -1592,6 +1678,49 @@
 
 (comment
 
+  (clojure.pprint/pprint (member 591))
+  (let [should-be-masters (jdbc/execute!
+                            @datasource
+                            ["select id from members where \"master_age\" is false
+    and exists (select true from game_member_results where member_id = members.id and class = any(ARRAY['masters', 'womensmaster', 'masters50+', 'masters60+', 'womensmaster50+', 'womensmaster60+']::membership_class_code[]))"])]
+    (prn "Stephaine?" (some #(= (:members/id %) 591 ) should-be-masters))
+    (prn "Me?" (some #(= (:members/id %) 958 ) should-be-masters))
+    )
+
+
+  (let [year 2024]
+    (->> (jdbc/execute!
+           @datasource
+           ["(select
+        last_value(game_member_results.class) over wnd as class,
+        last_value(game_member_results.score) over wnd as score,
+        last_value(game_member_results.event) over wnd as event,
+        last_value(game_member_results.member_id) over wnd as member_id,
+        last_value(game_member_results.distance_inches) over wnd as distance_inches,
+        last_value(game_member_results.clock_minutes) over wnd as clock_minutes,
+        last_value(game_member_results.weight) over wnd as weight,
+        last_value(members.first_name) over wnd as first_name,
+        last_value(members.last_name) over wnd as last_name,
+        (extract(\"year\" from members.birth_date + '40 years'::interval) <= ? or
+            extract(\"year\" from members.master_first_date) <= ?) as masters_age
+     from game_member_results
+     join members on game_member_results.member_id = members.id
+     join game_instances on game_member_results.game_instance = game_instances.id
+     where extract(\"year\" from game_instances.\"date\") = ?
+       and members.id = 1577
+       and members.country = any(ARRAY['Canada', ''])
+       and members.status = 'active'
+       and game_member_results.event <> all('{sheaf,braemar}')
+       and game_member_results.score > 0
+       and game_member_results.class <> all('{N/A, unknown}')
+     window wnd as (partition by game_member_results.member_id, game_member_results.event, case when game_member_results.event = 'caber' then 1 else game_member_results.weight end
+        order by score rows between unbounded preceding and unbounded following)
+      ) "
+            ;; window makes hwfd disappear?
+            year year year ])
+         (filter (fn [r] (= "womensmaster50+" (:class r))))
+         (map :event)))
+
   (jdbc/execute!
     @datasource
     ["select distinct(country) from members order by country"])
@@ -1609,13 +1738,38 @@
   (x/select
     [(x/keypath "masters" 12)
      ]
-    (rankings-for-year 2023))
+    (time (count (rankings-for-year 2023))))
 
-  (keys (rankings-for-year 2024))
+  (get-in (rankings-for-year 2024) ["womensmaster50+" 1577])
 
   (supplemental-results-for-masters 12)
   (get-in (rankings-for-year 2023)
           ["open" 958])
+
+  (-> (rankings-for-year 2024)
+      (get-in ["womensmaster50+" 1577 :events])
+      keys)
+  {"womensmaster"
+   {1577 {:members/id 1577, :members/first-name "Ali", :members/last-name "Gaul", :events {"caber" {:distance-inches 156.0M, :weight 33.00M, :clock-minutes 750, :score 390.4506M}, "open" {:distance-inches 302.5M, :weight 8.80M, :clock-minutes nil, :score 546.5849M}, "hwfd" {:distance-inches 346.5M, :weight 21.00M, :clock-minutes nil, :score 678.0822M}, "wob" {:distance-inches 144.0M, :weight 21.00M, :clock-minutes nil, :score 685.7143M}}, :score 2300.8320M}}
+   , "womens" {1577 {:members/id 1577, :members/first-name "Ali", :members/last-name "Gaul", :events {"caber" {:distance-inches 156.0M, :weight 33.00M, :clock-minutes 750, :score 390.4505813953488}, "open" {:distance-inches 302.5M, :weight 8.80M, :clock-minutes nil, :score 543.7282269840041}}, :score 934.1788083793529}}
+
+   , "womensmaster50+"
+   {1577 {:members/id 1577
+          :members/first-name "Ali"
+          :members/last-name "Gaul"
+          :events {"lwfd" {:distance-inches 417.0M
+                           :weight 14.00M
+                           :clock-minutes nil
+                           :score 524.5283M}
+                   "lhmr" {:distance-inches 621.0M
+                           :weight 12.00M
+                           :clock-minutes nil
+                           :score 602.3278M}
+                   "hhmr" {:distance-inches 525.0M
+                           :weight 16.00M
+                           :clock-minutes nil
+                           :score 628.3662M}}
+          :score 1755.2223M}}}
 
   (prn (map :score (vals (get-in (rankings-for-year 2023)
                       [:open 958 :events]))))
@@ -1641,6 +1795,10 @@ where member_id = 1203 and class = 'womensmaster'"])
   (jdbc/execute!
     @datasource
     ["select game_instances.date from game_instances join games on game_id = games.id where name like '%Pleasanton%'"])
+
+  (jdbc/execute!
+    @datasource
+    ["update members set country = 'Canada' where country = 'Canada�'"])
   )
 
 (defn set-first-masters-date!
