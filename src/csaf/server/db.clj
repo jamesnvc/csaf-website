@@ -983,13 +983,14 @@
   []
   (let [top-results (jdbc/execute!
                       @datasource
-                      ["select distinct first_value(id) over wnd as id,
-                        first_value(class) over wnd as class,
-                        first_value(event) over wnd as event,
-                        first_value(score) over wnd as score
+                      ["select distinct first_value(game_member_results.id) over wnd as id,
+                        first_value(game_member_results.class) over wnd as class,
+                        first_value(game_member_results.event) over wnd as event,
+                        first_value(game_member_results.score) over wnd as score
                        from game_member_results
-                         where event <> 'caber'
-                         window wnd as (partition by class, event order by score desc
+                        join members on members.id = game_member_results.member_id
+                         where event <> 'caber' and members.country = any(ARRAY['Canada', ''])
+                         window wnd as (partition by game_member_results.class, event order by score desc
                            rows between unbounded preceding and unbounded following)"])]
     (->> (jdbc/plan
            @datasource
