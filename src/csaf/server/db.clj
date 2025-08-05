@@ -1072,6 +1072,7 @@
                        from game_member_results
                         join members on members.id = game_member_results.member_id
                          where event <> 'caber' and members.country = any(ARRAY['Canada', ''])
+                               and members.status = 'active'
                          window wnd as (partition by game_member_results.class, event order by score desc
                            rows between unbounded preceding and unbounded following)"])]
     (->> (jdbc/plan
