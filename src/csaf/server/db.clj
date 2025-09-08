@@ -1170,7 +1170,7 @@
         first_value(weight) over wnd as weight,
         first_value(year) over wnd as year
       from event_records
-      where status = 'verified' and event <> 'open'
+      where status <> 'unverified' and event <> 'open'
       window wnd as (partition by class, event order by
          (case when year < ? then year else -year end) desc, distance_inches desc
         rows between unbounded preceding and unbounded following))
