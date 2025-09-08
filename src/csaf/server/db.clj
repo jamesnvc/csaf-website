@@ -553,6 +553,8 @@
   ;; Anna Reiner/Rainer => Anna Reiner
   (merge-members! [1612 1633])
 
+  (jdbc/execute! @datasource ["update members set birth_date = '1972-12-17' where id = 1577"])
+
   (jdbc/execute! @datasource ["select id, username, first_name, last_name from members where last_name = 'Hren'"])
 
   (jdbc/execute! @datasource ["select id, login, first_name, last_name from members where login = 'Hren.Hren'"])
