@@ -1156,6 +1156,10 @@
 
   (jdbc/execute!
     @datasource
+    ["select * from event_records where class = 'juniors' and event = 'hhmr'"])
+
+  (jdbc/execute!
+    @datasource
     ["select * from event_records where status = 'unverified'"])
   )
 
@@ -1228,7 +1232,7 @@
    "hwfd"    { "open" 56 "masters" 42 "amateurs" 56 "juniors" 42 "womens" 28 "womensmaster" 21 "lightweight" 42 "womensyouth" 14 "womensjunior" 21 "youth" 28 "masters50+" 42 "masters60+" 35 "womensmaster50+" 21 "womensmaster60+" 14}
    "lwfd"    { "open" 28 "masters" 28 "amateurs" 28 "juniors" 28 "womens" 14 "womensmaster" 14 "lightweight" 28 "womensyouth" 9 "womensjunior" 14 "youth" 21 "masters50+" 28 "masters60+" 21 "womensmaster50+" 14 "womensmaster60+" 9}
    "lhmr"    { "open" 16 "masters" 16 "amateurs" 16 "juniors" 16 "womens" 12 "womensmaster" 12 "lightweight" 16 "womensyouth" 8 "womensjunior" 12 "youth" 12 "masters50+" 16 "masters60+" 12 "womensmaster50+" 12 "womensmaster60+" 8}
-   "hhmr"    { "open" 22 "masters" 22 "amateurs" 22 "womens" 16 "womensmaster" 16 "lightweight" 22 "womensyouth" 12 "womensjunior" 16 "youth" 16 "masters50+" 16 "masters60+" 12 "womensmaster50+" 16 "womensmaster60+" 12}
+   "hhmr"    { "open" 22 "masters" 22 "amateurs" 22 "juniors" 22 "womens" 16 "womensmaster" 16 "lightweight" 22 "womensyouth" 12 "womensjunior" 16 "youth" 16 "masters50+" 16 "masters60+" 12 "womensmaster50+" 16 "womensmaster60+" 12}
    "sheaf"   { "open" 16 "masters" 16 "amateurs" 16 "womens" 10 "womensmaster" 10 "lightweight" 16 "womensyouth" 8 "womensjunior" 10 "youth" 10 "masters50+" 16 "masters60+" 14 "womensmaster50+" 8 "womensmaster60+" 8}})
 
 (def event-class-standards
@@ -1472,10 +1476,26 @@
     {:result #:game-member-results{:member-id 410, :distance-inches 192.0M, :weight 50.00M, :class "womens", :score 528.3430M, :game-instance 639, :clock-minutes 0, :event "caber", :id 20899}
      :year 2009})
 
-(jdbc/execute!
-  @datasource
-  ["select * from game_member_results where event = 'caber' and score <> 0 limit 1"]
-  jdbc/snake-kebab-opts)
+  (jdbc/execute!
+    @datasource
+    ["select * from game_member_results where event = 'caber' and score <> 0 limit 1"]
+    jdbc/snake-kebab-opts)
+
+
+  (let [results (jdbc/execute!
+                  @datasource
+                  ["select game_member_results.*, extract(\"year\" from game_instances.date) as year from game_member_results join game_instances on game_instances.id = game_instance where event = 'hhmr' and class = 'juniors' and score = 0 and weight <> 0"]
+                  jdbc/snake-kebab-opts)]
+    (doseq [result results]
+      (jdbc/execute!
+        @datasource
+        ["update game_member_results set score = ? where id = ?"
+         (score-for-result
+           "juniors"
+           {:result result
+            :year (:year result)})
+         (:game-member-results/id result)])))
+
   )
 
 ;; Rankings
