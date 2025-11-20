@@ -17,6 +17,8 @@ server {
     access_log /var/log/nginx/csaf.access.log;
     error_log /var/log/nginx/csaf.error.log;
 
+    client_max_body_size 100M;
+
     if ($host = csaf.ca) {
         return 301 $scheme://www.csaf.ca$request_uri;
     }
