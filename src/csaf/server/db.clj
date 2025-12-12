@@ -759,7 +759,11 @@
   [sheet-id]
   (jdbc/execute!
     @datasource
-    ["delete from score_sheets where id = ?" sheet-id]))
+    ["with empty_instances as (
+       delete from game_instances where source_sheet_id = ?
+       and not exists (select * from game_member_results
+          where game_instance = game_instances.id))
+     delete from score_sheets where id = ? and status <> 'approved'" sheet-id sheet-id]))
 
 (defn update-sheet-for-user
   [{:keys [user-id sheet-id sheet]}]
