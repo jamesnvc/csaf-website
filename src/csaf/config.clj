@@ -10,6 +10,7 @@
        [:omni/http-port integer?]
        [:omni/environment [:enum :prod :dev]]
        [:csaf/cookie-secret string?]
+       [:csaf/documents-path string?]
        [:csaf/token-secret string?]
        [:csaf/database-url [:re #"^postgresql://.*$"]]])))
 

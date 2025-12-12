@@ -6,8 +6,12 @@
    [clojure.string :as string]
    [bloom.omni.impl.crypto :as crypto]
    [huff2.core :as huff]
+   [ring.util.codec :as ring-codec]
+   [ring.middleware.multipart-params :as multipart]
+   [csaf.config :as config]
    [csaf.client.home]
    [csaf.client.athletes :as athletes]
+   [csaf.client.documents :as documents]
    [csaf.client.games :as games]
    [csaf.client.members :as members]
    [csaf.client.pages-editor :as pages-editor]
@@ -486,6 +490,39 @@
                    (page))}
         {:status 403}))]
 
+   [[:get "/admin/documents"]
+    (fn [req]
+      (if (user-is-admin? req)
+        {:status 200
+         :headers {"Content-Type" "text/html; charset=utf-8"}
+         :body (-> (keep (fn [f] (when (.isFile f) (.getName f)))
+                           (file-seq (io/file (@config/config :csaf/documents-path))))
+                   (documents/documents-view)
+                   (layout/layout (logged-in-user req))
+                   (page))}
+        {:status 403}))]
+
+   [[:post "/admin/documents"]
+    (fn [req]
+      (if (user-is-admin? req)
+        (let [docs-dir (io/file (@config/config :csaf/documents-path))]
+          (when-let [file (get-in req [:params "document"])]
+            (.mkdirs docs-dir)
+            (io/copy (:tempfile file) (io/file docs-dir (:filename file))))
+          {:status 302
+           :headers {"Location" "/admin/documents"}})
+        {:status 403}))
+    [multipart/wrap-multipart-params]]
+
+   [[:get "/documents/:file"]
+    (fn [req]
+      {:status 200
+       :body
+       (io/file
+         (io/file (@config/config :csaf/documents-path))
+         (.getName
+           (io/file (ring-codec/percent-decode (get-in req [:params :file])))))})]
+
    [[:get "/admin/users/manage/:user-id"]
     (fn [req]
       (if (and (user-is-admin? req)
@@ -511,8 +548,7 @@
            :headers {"Location" (str "/admin/users/manage/" (get-in req [:params :user-id]))}
            :session (assoc (:session req)
                            :flash (str "New password is \"" new-pass "\""))})
-        {:status 403})
-      )]
+        {:status 403}))]
 
    [[:get "/page/:page"]
     (fn [req]

@@ -74,6 +74,8 @@
 
      [:a {:href "/admin/pages"} "Edit Pages"]
 
+     [:a {:href "/admin/documents"} "Upload Documents"]
+
      [:a {:href "/admin/users/manage"} "Manage Users"]
 
      (when (seq (:pending-records @app-state))
