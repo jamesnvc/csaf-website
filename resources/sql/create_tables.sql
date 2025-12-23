@@ -227,3 +227,12 @@ create table if not exists pages (
    "title" text not null primary key,
    "content" text not null default ''
 );
+
+create table if not exists calendar_entry (
+  "id" serial primary key,
+  "date" date not null,
+  "location" text not null, -- make this more structured?
+  "title" text not null,
+  "description" text
+);
+create index if not exists calendar_entry_date on calendar_entry ("date");

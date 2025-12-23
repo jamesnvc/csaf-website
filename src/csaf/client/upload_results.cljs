@@ -78,6 +78,8 @@
 
      [:a {:href "/admin/users/manage"} "Manage Users"]
 
+     [:a {:href "/admin/calendar"} "Manage Calendar"]
+
      (when (seq (:pending-records @app-state))
        [:div
         [:h2 {:tw "text-lg"} "Pending Records"]

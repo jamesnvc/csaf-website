@@ -11,6 +11,7 @@
    [csaf.config :as config]
    [csaf.client.home]
    [csaf.client.athletes :as athletes]
+   [csaf.client.calendar :as calendar]
    [csaf.client.documents :as documents]
    [csaf.client.games :as games]
    [csaf.client.members :as members]
@@ -105,8 +106,10 @@
       {:status 200
        :headers {"Content-Type" "text/html; charset=utf-8"}
        :body (-> (if-let [content (db/load-page "home")]
-                   [:div.page [:hiccup/raw-html (:pages/content content)]]
-                   (csaf.client.home/home-view))
+                   (csaf.client.home/home-view
+                     {:page-content (:pages/content content)
+                      :calendar-entries (db/calendar-entries (java.util.Date.))})
+                   (csaf.client.home/temp-home-view))
                  (layout/layout (logged-in-user req))
                  page)})]
 
@@ -513,6 +516,35 @@
            :headers {"Location" "/admin/documents"}})
         {:status 403}))
     [multipart/wrap-multipart-params]]
+
+   [[:get "/admin/calendar"]
+    (fn [req]
+      (if (user-is-admin? req)
+        {:status 200
+         :headers {"Content-Type" "text/html; charset=utf-8"}
+         :body (-> (calendar/admin-calendar-view (db/calendar-entries (java.util.Date.)))
+                   (layout/layout (logged-in-user req))
+                   (page))}
+        {:status 403}))]
+
+   [[:post "/admin/calendar"]
+    (fn [req]
+      (if (user-is-admin? req)
+        (let [args (select-keys (req :params) [:date :location :title :description])]
+          (db/create-entry! args)
+          {:status 302
+           :headers {"Location" "/admin/calendar"}})
+        {:status 403}))]
+
+   [[:post "/admin/calendar/:id/delete"]
+    (fn [req]
+      (if (user-is-admin? req)
+        (if-let [entry-id (->int (get-in req [:params :id]))]
+          (do (db/delete-entry! entry-id)
+              {:status 302
+               :headers {"Location" "/admin/calendar"}})
+          {:status 400})
+        {:status 403}))]
 
    [[:get "/documents/:file"]
     (fn [req]

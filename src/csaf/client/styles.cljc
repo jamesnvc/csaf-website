@@ -96,5 +96,5 @@
     [:ul {:list-style-type "disc"}]
     ["li > ol, li > ul"
      {:margin-inline-start "2rem"
-      :list-style-type "lower-alpha"}]]
-   ])
+      :list-style-type "lower-alpha"}]
+    [:img {:max-width "100%"}]]])

@@ -1877,3 +1877,26 @@ where member_id = 1203 and class = 'womensmaster'"])
   (load-page "foo")
   (create-page! "foo")
   )
+
+;; Calendar
+
+(defn create-entry!
+  [{:keys [date location title description]}]
+  (jdbc/execute!
+    @datasource
+    ["insert into calendar_entry (\"date\", location, title, description)
+      values (?::date, ?, ?, ?)" date location title description]))
+
+(defn delete-entry!
+  [id]
+  (jdbc/execute!
+    @datasource
+    ["delete from calendar_entry where id = ?" id]))
+
+(defn calendar-entries
+  [from]
+  (jdbc/execute!
+    @datasource
+    ["select * from calendar_entry where \"date\" > ? order by \"date\" asc"
+     (java.sql.Date. (.getTime from))]
+    jdbc/snake-kebab-opts))
