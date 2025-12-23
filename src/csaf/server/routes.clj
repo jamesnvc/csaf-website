@@ -15,6 +15,7 @@
    [csaf.client.documents :as documents]
    [csaf.client.games :as games]
    [csaf.client.members :as members]
+   [csaf.client.merging :as merging]
    [csaf.client.pages-editor :as pages-editor]
    [csaf.client.rankings :as rankings]
    [csaf.client.results :as results]
@@ -137,6 +138,21 @@
                    page)}
         {:status 404}))
     []]
+
+   [[:get "/athletes/:id/embed"]
+    (fn [req]
+      (if-let [athlete-id (->int (get-in req [:params :id]))]
+        {:status 200
+         :headers {"Content-Type" "text/html; charset=utf-8"}
+         :body (-> (db/member athlete-id)
+                   ;; TODO: use datafy/nav to do this?
+                   (assoc :member/game-results (db/member-game-results athlete-id)
+                          :member/prs (db/member-pr-results athlete-id))
+                   athletes/athlete-view
+                   tw->class
+                   huff/html
+                   str)}
+        {:status 404}))]
 
    [[:get "/records"]
     (fn [req]
@@ -544,6 +560,32 @@
               {:status 302
                :headers {"Location" "/admin/calendar"}})
           {:status 400})
+        {:status 403}))]
+
+   [[:get "/admin/users/merge"]
+    (fn [req]
+      (if (user-is-admin? req)
+        {:status 200
+         :headers {"Content-Type" "text/html; charset=utf-8"}
+         :body (-> (merging/merge-members-view (db/all-members))
+                   (layout/layout (logged-in-user req))
+                   (page))}
+        {:status 403}))]
+
+   [[:post "/admin/users/merge"]
+    (fn [req]
+      (if (user-is-admin? req)
+        (let [real-user (get-in req [:params :correct-member-name])
+              wrong-user (get-in req [:params :wrong-member-name])
+              real-id (some->> real-user (re-matches #".*\(#(\d+)\)$")
+                               second ->int)
+              wrong-id (some->> wrong-user (re-matches #".*\(#(\d+)\)$")
+                                second ->int)]
+          (if (and real-id wrong-id)
+            (do (db/merge-members! [real-id wrong-id])
+                {:status 302
+                 :headers {"Location" (str "/athletes/" real-id)}})
+            {:status 400}))
         {:status 403}))]
 
    [[:get "/documents/:file"]
