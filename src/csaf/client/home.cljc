@@ -24,12 +24,12 @@
 (defn home-view
   [{:keys [page-content calendar-entries]}]
   [:div.main {:tw "grid gap-2 mx-1"
-              :style {:grid-template-columns "1fr 8rem"}}
+              :style {:grid-template-columns "3fr 1fr"}}
    [:div.page {:style {:overflow-x "scroll"}}
     [:hiccup/raw-html page-content]]
    [:div
     [:h2 {:class "mb-4"} "Upcoming Events"]
-    [:ol {:class "flex flex-col gap-4"}
+    [:ol {:class "flex flex-col gap-4 break-all"}
      (for [{:calendar-entry/keys [date location title description]}
            calendar-entries]
        [:li
