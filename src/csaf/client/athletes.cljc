@@ -102,7 +102,7 @@
            [:td
             (if (or (nil? (:weight result)) (nil? (:distance-inches result))
                   (and (zero? (:weight result)) (zero? (:distance-inches result))))
-              "N/A"
+              "\u00a0"
               (case event-name
                 "caber"
                 [:<>

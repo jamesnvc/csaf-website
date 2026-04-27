@@ -102,7 +102,7 @@
                                "bg-red-500")}
                     (if (or (nil? weight) (nil? distance-inches)
                             (and (zero? weight) (zero? distance-inches)))
-                      "N/A"
+                      "\u00a0"
                       (case event-name
                         "caber"
                         [:<>
