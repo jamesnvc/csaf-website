@@ -134,6 +134,7 @@
   (let [row-keys (zipmap (map string/lower-case headers) row)
         base {:name (get row-keys "name")
               :placing (->int (get row-keys "placing"))
+              :dob (get row-keys "dob")
               ;; TODO validate class
               :class (class-names (string/lower-case (get row-keys "class")))
               :country (get row-keys "country" "Canada")}

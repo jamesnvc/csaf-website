@@ -208,7 +208,8 @@
                                         headers row)))
                        (group-by :class))]
       (doall
-        (for [[class class-results] results]
+        (for [[class class-results] results
+              :let [has-dob? (->> class-results (filter :dob) seq boolean)]]
           ^{:key (or class "unknown")}
           [:<>
            [:thead
@@ -216,7 +217,9 @@
              [:th {:tw "font-normal text-sm text-gray-500"}
               (some-> class results/display-class)]]
             [:tr [:th ""]
-             [:th "Name"] [:th "Place"]
+             [:th "Name"]
+             [:th "Place"]
+             (when has-dob? [:th "DoB"])
              (for [event-name results/events-in-order]
                ^{:key event-name}
                [:th (results/abbrev-event-name event-name)])]]
@@ -233,6 +236,8 @@
                     [:span (:name result)
                      [:span {:tw "text-xs ml-2"} "new"]])])
                [:td (:placing result)]
+               (when has-dob?
+                 [:td (:dob result)])
                (for [event-name results/events-in-order
                      :let [{:keys [distance-inches clock-minutes weight]}
                            (get-in result [:events event-name])]]
@@ -241,7 +246,7 @@
                   (if (or (nil? weight) (nil? distance-inches)
                           (nan? weight) (nan? distance-inches)
                           (and (zero? weight) (zero? distance-inches)))
-                    "N/A"
+                    "\u00a0"
                     (case event-name
                       "caber"
                       [:<>
@@ -258,7 +263,7 @@
                       (results/display-distance distance-inches)))])])]])))]])
 
 (def default-sheet-header
-  [["Name" "Country" "Class" "Placing"
+  [["Name" "Country" "Dob" "Class" "Placing"
     "BRAE_feet" "BRAE_inches" "BRAE_weight"
     "STON_feet" "STON_inches" "STON_weight"
     "SHF_feet" "SHF_inches" "SHF_weight"
@@ -392,6 +397,8 @@
           [:dd "Athlete's name, as \"Last, First\""]
           [:dt "Country"]
           [:dd "Athlete's Country"]
+          [:dt "Dob"]
+          [:dd "Athlete's date of birth in the format yyyy-mm-dd (optional)"]
           [:dt "Class"]
           [:dd "One of "
            [:ul {:tw "list-disc ml-4"}
@@ -515,7 +522,7 @@
                   [:button
                    {:on-click (fn [] (x/setval
                                        (conj partial-path x/ALL x/AFTER-ELEM)
-                                       ""
+                                       "new_field"
                                        app-state))}
                        " + "]])]])
            [:tbody

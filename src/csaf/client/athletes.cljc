@@ -33,6 +33,10 @@
     (when-let [postal (:members/postal-code member)]
       [:div postal])]
 
+   (when-let [birth-date (:members/birth-date member)]
+     [:div.birthdate
+      (str "Born " birth-date)])
+
    [:div.stats
     (let [dt-tw "after:content-[\"::\"]"]
       [:dl {:tw "grid gap-1" :style {:grid-template-columns "max-content max-content"}}

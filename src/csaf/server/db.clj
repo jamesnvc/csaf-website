@@ -915,7 +915,13 @@
             select new_game_instance.id, x.*
               from jsonb_to_recordset(?) as x(member_id integer,
                \"placing\" integer, class membership_class_code)
-              join new_game_instance on true)
+              join new_game_instance on true),
+
+           updated_birthdates as (
+             update members
+              set birth_date = x.birth_date
+              from jsonb_to_recordset(?) as x(member_id integer, birth_date date)
+              where members.id = x.member_id)
 
             update score_sheets set status = 'approved' where id = ?"
                       (:score-sheets/games-id sheet)
@@ -948,7 +954,13 @@
                               :placing (:placing result)
                               :class (:class result)}))
 
+                      (vec (for [result results
+                                 :when (not (string/blank? (:dob result)))]
+                             {:member_id (:members/id result)
+                              :birth_date (:dob result)}))
+
                       sheet-id])]
+
         (update-should-be-masters)
         result))))
 
