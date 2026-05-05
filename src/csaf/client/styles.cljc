@@ -97,4 +97,18 @@
     ["li > ol, li > ul"
      {:margin-inline-start "2rem"
       :list-style-type "lower-alpha"}]
-    [:img {:max-width "100%"}]]])
+    [:img {:max-width "100%"}]]
+
+   [:.member-manage
+    [:form.member-info
+     [:fieldset
+      [:label
+       {:display "inline-flex"
+        :flex-direction "column"}
+       ["&.full"
+        {:display "flex"}]
+       [">span"
+        {:font-variant "small-caps"
+         :font-size "0.8rem"
+         :color "gray"}]]]
+     ]]])

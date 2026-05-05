@@ -41,7 +41,8 @@ doSearch();
 
 (defn member-manage-view
   [{:keys [member message]}]
-  [:div {:tw "flex flex-col gap-3"}
+  [:div.member-manage {:tw "flex flex-col gap-3"}
+   [:a {:href "/admin/users/manage"} "Back to Manage Members"]
    [:h3 "Manage Member"]
 
    (when message
@@ -49,38 +50,74 @@ doSearch();
                 "border border-1px border-solid border-green-700"] }
       message])
 
-   [:h2 {:tw "text-xl"} (:members/first-name member) " " (:members/last-name member)]
-   [:p "Login: " (:members/login member)]
+   [:form.member-info
+    {:method "post"
+     :action (str "/admin/users/manage/" (:members/id member))
+     :tw "flex flex-col gap-4"}
+    [:fieldset {:tw "text-xl"}
+     [:label [:span "First Name"]
+      [:input {:value (:members/first-name member)
+               :name "first_name"
+               :required true}]]
+     " "
+     [:label [:span "Last Name"]
+      [:input {:value (:members/last-name member)
+               :name "last_name"
+               :required true}]]]
 
-   (when-let [email (:members/email member)]
-     [:a {:tw styles/a-tw :href (str "mailto:" email)} email])
+    [:p "Login: " (:members/login member)]
 
-   [:div.location
-    (let [locale (->> (keep member [:members/city :members/province])
-                      (string/join ", "))]
-      (when-not (string/blank? locale)
-        [:div locale]))
-    [:div (:members/country member)]
-    (when-let [postal (:members/postal-code member)]
-      [:div postal])]
+    [:fieldset
+     [:label [:span "Birth Date"]
+      [:input {:type "date"
+               :value (:members/birth-date member)
+               :name "birth_date"
+               :placeholder "1980-01-01"}]]]
 
-   [:div.stats
-    (let [dt-tw "after:content-[\"::\"]"]
-      [:dl {:tw "grid gap-1" :style {:grid-template-columns "max-content max-content"}}
-       (when-let [height (:members/height member)]
-         [:<> [:dt {:tw dt-tw} "Height "]
-          [:dd height]])
+    [:fieldset
+     [:label [:span "Email"]
+      [:input {:type "email"
+               :value (or (:members/email member) "")
+               :name "email"
+               :placeholder "user@example.com"}]]]
 
-       (when-let [weight (:members/weight member)]
-         [:<> [:dt {:tw dt-tw} "Weight "]
-          [:dd weight]])
+    [:fieldset.location
+     [:label [:span "Country"]
+      [:input {:value (:members/country member)
+               :placeholder "Canada"
+               :name "country"
+               :required true}]]
+     [:br]
+     [:label [:span "City"]
+      [:input {:value (:members/city member)
+               :placeholder "Ottawa"
+               :name "city"}]]
+     ", "
+     [:label [:span "Province"]
+      [:input {:value (:members/province member)
+               :placeholder "Ontario"
+               :name "province"}]]
+     [:br]
+     [:label [:span "Postal Code"]
+      [:input {:value (:members/postal-code member)
+               :placeholder "M1M 1M1"
+               :name "postal_code"}]]]
 
-       (when-let [tartan (:members/tartan member)]
-         [:<> [:dt {:tw dt-tw} "Tartan "]
-          [:dd tartan]])])]
+    [:fieldset.stats
+     (for [prop [:members/height :members/weight :members/tartan]]
+       [:label [:span (string/capitalize (name prop))]
+        [:input {:value (get member prop)
+                 :name (name prop)
+                 :placeholder "..."}]])]
 
-   (when-let [bio (:members/biography member)]
-     [:div.bio [:hiccup/raw-html bio]])
+    [:fieldset
+     [:label.full [:span "Bio"]
+      [:textarea {:value (:members/biography member)
+                  :name "biography"
+                  :placeholder "Lifter biography goes here"
+                  :tw "w-100%"}]]]
+
+    [:button "Save"]]
 
    [:form {:method "post"
            :action (str "/admin/users/manage/" (:members/id member) "/reset-password")}

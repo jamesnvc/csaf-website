@@ -612,6 +612,24 @@
           (assoc :session (dissoc (req :session) :flash)))
         {:status 403}))]
 
+   [[:post "/admin/users/manage/:user-id"]
+    (fn [req]
+      (if (and (user-is-admin? req)
+               (->int (get-in req [:params :user-id])))
+        (let [form-params (->> (:form-params req)
+                               (x/setval [x/MAP-VALS (x/pred string/blank?)] nil)
+                               (x/transform
+                                 [(x/keypath "birth_date")
+                                  (x/pred some?)]
+                                 (fn [date-str]
+                                   (java.sql.Date/valueOf date-str))))]
+          (prn "UPDATING " form-params)
+          (db/update-member! (->int (get-in req [:params :user-id])) form-params)
+          {:status 303
+           :headers {"Location" (str "/admin/users/manage/" (get-in req [:params :user-id]))}
+           :session (assoc (:session req) :flash "Saved!")})
+        {:status 403}))]
+
    [[:post "/admin/users/manage/:user-id/reset-password"]
     (fn [req]
       (if (and (user-is-admin? req)

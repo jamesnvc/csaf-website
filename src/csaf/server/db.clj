@@ -7,6 +7,7 @@
    [next.jdbc :as jdbc]
    [next.jdbc.prepare :as jdbc.prepare]
    [next.jdbc.result-set :as jdbc.rs]
+   [next.jdbc.sql :as jdbc.sql]
    [hikari-cp.core :as hikari]
    [csaf.config :as config]
    [jsonista.core :as json]
@@ -188,6 +189,10 @@
      where id = ? group by members.id" id]
         jdbc/snake-kebab-opts)
       (update :roles (comp #(disj % nil) set))))
+
+(defn update-member!
+  [id attributes]
+  (jdbc.sql/update! @datasource :members attributes {:id id}))
 
 (comment
   (member 1631)
