@@ -40,7 +40,14 @@ do $$
         'masters50+',
         'masters60+',
         'womensmaster50+',
-        'womensmaster60+'
+        'womensmaster60+',
+        'womenslightweight',
+        'womenslightweightmaster',
+        'womenslightweightmaster50+',
+        'womenslightweightmaster60+',
+        'lightweightmasters',
+        'lightweightmasters50+',
+        'lightweightmasters60+'
         );
     end if;
 end$$;

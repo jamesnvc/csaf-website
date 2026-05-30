@@ -35,11 +35,23 @@
 (defn display-class
   [cls]
   (cond-> cls
-    (string/starts-with? cls "womens")
+    (string/includes? cls "womens")
     (string/replace #"^womens" "women's ")
+
+    (re-matches #"^.*lightweight.*$" cls)
+    (string/replace #"^(.*)(lightweight)(.*)$"
+                    (fn [[_ pre lw post]]
+                      (if (and (string/blank? pre) (string/blank? post))
+                        lw
+                        (str pre " " lw " " post))))
+
     (re-matches #".*\d+\+$" cls)
     (string/replace #"(\d+\+)$" " $1")
-    true (string/replace #"(\S+)\b" (fn [[_ w]] (string/capitalize w)))))
+
+    true (->
+           (string/replace #"(\S+)\b" (fn [[_ w]] (string/capitalize w)))
+           (string/replace #"\s+" " ")
+           string/trim)))
 
 (comment
   (map display-class classes-in-order)
@@ -71,8 +83,14 @@
   ["braemar" "open" "sheaf" "caber" "lwfd" "hwfd" "lhmr" "hhmr" "wob"])
 
 (def classes-in-order
-  ["open" "masters" "lightweight" "juniors" "womens" "womensmaster" "womensyouth" "amateurs"
-   "womensjunior" "youth" "masters50+" "masters60+" "womensmaster50+" "womensmaster60+"])
+  ["open" "masters" "lightweight" "lightweightmasters" "juniors"
+   "womens" "womensmaster" "womenslightweight" "womenslightweightmaster" "womensyouth"
+   "amateurs"
+   "womensjunior" "youth"
+   "masters50+" "masters60+" "womensmaster50+" "womensmaster60+"
+   "lightweightmasters50+" "lightweightmasters60+"
+   "womenslightweightmaster50+" "womenslightweightmaster60+"
+   ])
 
 (defn ->int
   [s]
@@ -106,7 +124,15 @@
    "womensmaster50+" "womensmaster50+"
    "womensmaster60+" "womensmaster60+"
    "youth" "youth"
-   "womensjunior" "womensjunior"})
+   "womensjunior" "womensjunior"
+   "womenslightweight" "womenslightweight"
+   "womenslightweightmaster" "womenslightweightmaster"
+   "womenslightweightmaster50+" "womenslightweightmaster50+"
+   "womenslightweightmaster60+" "womenslightweightmaster60+"
+   "lightweightmasters" "lightweightmasters"
+   "lightweightmasters50+" "lightweightmasters50+"
+   "lightweightmasters60+" "lightweightmasters60+"
+   })
 
 (defn parse-clock-minutes
   [s]

@@ -150,6 +150,19 @@
       alter type membership_class_code add value 'womensmaster60+';
 "]))
 
+(defn migrate-add-lightweight-classes
+  []
+  (jdbc/execute!
+    @datasource
+    ["alter type membership_class_code add value 'womenslightweight';
+      alter type membership_class_code add value 'womenslightweightmaster';
+      alter type membership_class_code add value 'womenslightweightmaster50+';
+      alter type membership_class_code add value 'womenslightweightmaster60+';
+      alter type membership_class_code add value 'lightweightmasters';
+      alter type membership_class_code add value 'lightweightmasters50+';
+      alter type membership_class_code add value 'lightweightmasters60+';
+"]))
+
 ;;; member queries
 
 (defn authenticate-user
@@ -1346,9 +1359,15 @@
      (event-top-weights-for-year-by-class year)))
   ([class year {:game-member-results/keys [event weight distance-inches clock-minutes]}
     event-records event-top-weights]
-   (let [class (case class
-                 "amateurs" "open"
-                 class)
+   (let [real-class class
+         class (cond
+                 (= class "amateurs") "open"
+
+                 (and (not= class "lightweight")
+                      (string/includes? class "lightweight"))
+                 (string/replace class "lightweight" "")
+
+                 :else class)
          class-weight-limit (if (and (= event "open") (= class "juniors")
                                      (<= 2022 year 2023))
                               0
