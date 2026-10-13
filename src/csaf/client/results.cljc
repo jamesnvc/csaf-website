@@ -149,10 +149,17 @@
                  (or (some-> ins (->float)) 0)))]
       d)))
 
+(defn parse-weight
+  [s]
+  (let [[_ amt _] (re-matches #"([0-9.]+)(lbs?)?" s)]
+    (->float amt)))
+
 (comment
   (string/replace "50'" #"[^0-9]+$" "")
   (->int "50'")
   (parse-distance "16’")
+  (->float "9lbs")
+  (map parse-weight ["9" "9lb" "9lbs" "9.5lbs"])
   )
 
 (defn result-row->game-results
@@ -184,9 +191,9 @@
                                  (not= "n/a" (string/lower-case (get row-keys (str evt "_feet")))) )))
                       (get row-keys (str evt "_weight"))
                       (not (string/blank? (get row-keys (str evt "_weight"))))
-                      (not= 0 (->float (get row-keys (str evt "_weight")))))
+                      (not= 0 (parse-weight (get row-keys (str evt "_weight")))))
                (assoc-in res [:events (abbrev->name evt)]
-                         (cond-> {:weight (->float (get row-keys (str evt "_weight")))}
+                         (cond-> {:weight (parse-weight (get row-keys (str evt "_weight")))}
                            (= evt "cabr")
                            (-> (assoc :clock-minutes (parse-clock-minutes (get row-keys evt)))
                                (assoc :distance-inches
