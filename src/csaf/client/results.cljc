@@ -151,15 +151,17 @@
 
 (defn parse-weight
   [s]
-  (let [[_ amt _] (re-matches #"([0-9.]+)(lbs?)?" s)]
-    (->float amt)))
+  (when s
+    (let [[_ amt _] (re-matches #"([0-9.]+)(lbs?)?" s)]
+      (when amt
+        (->float amt)))))
 
 (comment
   (string/replace "50'" #"[^0-9]+$" "")
   (->int "50'")
   (parse-distance "16’")
   (->float "9lbs")
-  (map parse-weight ["9" "9lb" "9lbs" "9.5lbs"])
+  (map parse-weight [nil "9" "9lb" "9lbs" "9.5lbs"])
   )
 
 (defn result-row->game-results
